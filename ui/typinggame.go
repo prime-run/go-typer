@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,11 +15,13 @@ import (
 )
 
 type TypingModel struct {
-	textarea   textarea.Model
-	targetText string
-	width      int
-	height     int
-	typingLog  []string
+	textarea     textarea.Model
+	targetText   string
+	width        int
+	height       int
+	typingLog    []string
+	startTime    time.Time
+	timerRunning bool
 }
 
 func NewTypingModel(width, height int) TypingModel {
@@ -29,11 +32,12 @@ func NewTypingModel(width, height int) TypingModel {
 	ta.SetHeight(3)
 
 	return TypingModel{
-		textarea:   ta,
-		targetText: SampleText,
-		width:      width,
-		height:     height,
-		typingLog:  []string{},
+		textarea:     ta,
+		targetText:   SampleText,
+		width:        width,
+		height:       height,
+		typingLog:    []string{},
+		timerRunning: false,
 	}
 }
 
@@ -49,8 +53,14 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
-		case tea.KeyTab: //reset or tabshift? do we need tabshift in typing game ?!
+		case tea.KeyTab:
 			return NewTypingModel(m.width, m.height), nil
+		}
+
+		// Start the timer on first keystroke
+		if !m.timerRunning && msg.String() != "tab" && msg.String() != "esc" && msg.String() != "ctrl+c" {
+			m.timerRunning = true
+			m.startTime = time.Now()
 		}
 
 	case tea.WindowSizeMsg:
@@ -60,7 +70,6 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	m.textarea, cmd = m.textarea.Update(msg)
-
 	m.typingLog = append(m.typingLog, m.textarea.Value())
 
 	return m, cmd
@@ -87,14 +96,19 @@ func (m TypingModel) CompareWithTarget() string {
 		}
 
 		if i < len(targetWords) {
-			if userWord == targetWords[i] {
-				// green word
+			targetWord := targetWords[i]
+
+			if userWord == targetWord {
+				// All good with CW (cw = current word)
 				result.WriteString(InputStyle.Render(userWord))
+			} else if isPrefixOf(userWord, targetWord) {
+				result.WriteString(userWord)
 			} else {
+				// complete and incorrect, or incomplete and wrong already
 				result.WriteString(ErrorStyle.Render(userWord))
 			}
 		} else {
-			// extra stuff
+			// player just smashed his/her face on the keyboard
 			result.WriteString(ErrorStyle.Render(userWord))
 		}
 	}
@@ -102,28 +116,53 @@ func (m TypingModel) CompareWithTarget() string {
 	return result.String()
 }
 
+func isPrefixOf(s1, s2 string) bool {
+	if len(s1) > len(s2) {
+		return false
+	}
+	return s2[:len(s1)] == s1
+}
+
+func (m TypingModel) formatElapsedTime() string {
+	if !m.timerRunning {
+		return "00:00"
+	}
+
+	elapsed := time.Since(m.startTime)
+	minutes := int(elapsed.Minutes())
+	seconds := int(elapsed.Seconds()) % 60
+
+	return fmt.Sprintf("%02d:%02d", minutes, seconds)
+}
+
 func (m TypingModel) View() string {
 	padStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	pad := padStyle.Render(strings.Repeat(" ", Padding))
+
+	// TODO: when the timer needs more features, ove to ui/time.go
+	timerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFDB58")).
+		Bold(true).
+		Padding(0, 1)
+	timerDisplay := timerStyle.Render(m.formatElapsedTime())
 
 	formattedText := TextToTypeStyle.Render(m.targetText)
 
 	userTyped := m.CompareWithTarget()
 	previewStyle := lipgloss.NewStyle().
 		Padding(1).
-		Margin(10, 0, 0, 0).
+		Margin(8, 0, 0, 0).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#000000")).
+		BorderForeground(lipgloss.Color("#7F9ABE")).
 		Width(MaxWidth)
 
-	typingPreview := previewStyle.Render("---DEBUG ONLY---:\n" + userTyped)
+	typingPreview := previewStyle.Render("---DEBUG window ---:\n LIVE text eval \n" + userTyped)
 
 	textareaView := m.textarea.View()
 	instructions := HelpStyle("Type the text above. Press ESC to quit, TAB to restart.")
 
 	content := "\n" +
-		//FIX: the \n count should be derried from actual text (calculated based on terminal width! oh god i already can feel "fuck microsoft powershell" vibes)
-		pad + "GoTyper - Typing Practice" + "\n\n" +
+		pad + "GoTyper - Typing Practice " + timerDisplay + "\n\n" +
 		formattedText + "\n\n" +
 		textareaView + "\n\n" +
 		instructions + "\n\n" +
