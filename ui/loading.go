@@ -1,3 +1,4 @@
+// FROM lipgloss examples we connect it to server fetching text ofc
 package ui
 
 import (
@@ -21,6 +22,28 @@ type LoadingModel struct {
 	height   int
 }
 
+// type Option func(*Model)
+//
+// // WithDefaultGradient sets a gradient fill with default colors.
+//
+//	func WithDefaultGradient() Option {
+//		return WithGradient("#5A56E0", "#EE6FF8")
+//	}
+//
+// // WithGradient sets a gradient fill blending between two colors.
+//
+//	func WithGradient(colorA, colorB string) Option {
+//		return func(m *Model) {
+//			m.setRamp(colorA, colorB, false)
+//		}
+//	}
+//
+// // WithDefaultScaledGradient sets a gradient with default colors, and scales the
+// // gradient to fit the filled portion of the ramp.
+//
+//	func WithDefaultScaledGradient() Option {
+//		return WithScaledGradient("#5A56E0", "#EE6FF8")
+//	}
 func NewLoadingModel() LoadingModel {
 	return LoadingModel{
 		progress: progress.New(progress.WithDefaultGradient()),
@@ -41,6 +64,7 @@ func (m LoadingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.progress.Width = msg.Width - Padding*2 - 4
+		//FIX:my lsp says it can be modernized using min XD
 		if m.progress.Width > MaxWidth {
 			m.progress.Width = MaxWidth
 		}
@@ -70,7 +94,7 @@ func (m LoadingModel) View() string {
 	content := "\n" +
 		pad + "Loading text..." + "\n\n" +
 		pad + m.progress.View() + "\n\n" +
-		pad + HelpStyle("Text is being prepared...")
+		pad + HelpStyle("Text is being prepared (fetch paragrapg from server later)")
 
 	if m.width > 0 {
 		return lipgloss.Place(m.width, m.height,

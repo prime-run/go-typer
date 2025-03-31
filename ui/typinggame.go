@@ -99,17 +99,16 @@ func (m TypingModel) CompareWithTarget() string {
 			targetWord := targetWords[i]
 
 			if userWord == targetWord {
-				// Word is complete and correct
+				// All good with CW (cw = current word)
 				result.WriteString(InputStyle.Render(userWord))
 			} else if isPrefixOf(userWord, targetWord) {
-				// Word is incomplete but correct so far
 				result.WriteString(userWord)
 			} else {
-				// Word is either complete and incorrect, or incomplete and incorrect
+				// complete and incorrect, or incomplete and wrong already
 				result.WriteString(ErrorStyle.Render(userWord))
 			}
 		} else {
-			// Extra words beyond target text
+			// player just smashed his/her face on the keyboard
 			result.WriteString(ErrorStyle.Render(userWord))
 		}
 	}
@@ -117,7 +116,6 @@ func (m TypingModel) CompareWithTarget() string {
 	return result.String()
 }
 
-// isPrefixOf checks if s1 is a prefix of s2
 func isPrefixOf(s1, s2 string) bool {
 	if len(s1) > len(s2) {
 		return false
@@ -141,7 +139,7 @@ func (m TypingModel) View() string {
 	padStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	pad := padStyle.Render(strings.Repeat(" ", Padding))
 
-	// Timer display
+	// TODO: when the timer needs more features, ove to ui/time.go
 	timerStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FFDB58")).
 		Bold(true).
@@ -153,11 +151,12 @@ func (m TypingModel) View() string {
 	userTyped := m.CompareWithTarget()
 	previewStyle := lipgloss.NewStyle().
 		Padding(1).
+		Margin(8, 0, 0, 0).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#7F9ABE")).
 		Width(MaxWidth)
 
-	typingPreview := previewStyle.Render("Live typing:\n" + userTyped)
+	typingPreview := previewStyle.Render("---DEBUG window ---:\n LIVE text eval \n" + userTyped)
 
 	textareaView := m.textarea.View()
 	instructions := HelpStyle("Type the text above. Press ESC to quit, TAB to restart.")
