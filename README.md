@@ -33,4 +33,4 @@ Usage:
 ./go-typer start
 ```
 
-please also checkout [todos](todos.me)
+please also checkout [todos](todos.md)
