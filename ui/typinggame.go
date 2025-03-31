@@ -1,22 +1,27 @@
 package ui
 
 //
-//TODO: switch to a textare isntead of inpput for the input!
+//TODO: live hilight placeholders
 //
 import (
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"os"
-	"strings"
 )
 
 type TypingModel struct {
-	textarea   textarea.Model
-	targetText string
-	width      int
-	height     int
+	textarea     textarea.Model
+	targetText   string
+	width        int
+	height       int
+	typingLog    []string
+	startTime    time.Time
+	timerRunning bool
 }
 
 func NewTypingModel(width, height int) TypingModel {
@@ -27,10 +32,12 @@ func NewTypingModel(width, height int) TypingModel {
 	ta.SetHeight(3)
 
 	return TypingModel{
-		textarea:   ta,
-		targetText: SampleText,
-		width:      width,
-		height:     height,
+		textarea:     ta,
+		targetText:   SampleText,
+		width:        width,
+		height:       height,
+		typingLog:    []string{},
+		timerRunning: false,
 	}
 }
 
@@ -47,8 +54,13 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyTab:
-			// reset the game
 			return NewTypingModel(m.width, m.height), nil
+		}
+
+		// Start the timer on first keystroke
+		if !m.timerRunning && msg.String() != "tab" && msg.String() != "esc" && msg.String() != "ctrl+c" {
+			m.timerRunning = true
+			m.startTime = time.Now()
 		}
 
 	case tea.WindowSizeMsg:
@@ -58,30 +70,100 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	m.textarea, cmd = m.textarea.Update(msg)
+	m.typingLog = append(m.typingLog, m.textarea.Value())
+
 	return m, cmd
 }
 
+// compareWithTarget compares word by word NOTE:might be useful in some gamemod! but not for the main part
+//
+//	returns a formatted string with errors highlighted in red
+func (m TypingModel) CompareWithTarget() string {
+	userInput := m.textarea.Value()
+
+	if userInput == "" {
+		return "Start typing..."
+	}
+
+	targetWords := strings.Fields(m.targetText)
+	userWords := strings.Fields(userInput)
+
+	var result strings.Builder
+
+	for i, userWord := range userWords {
+		if i > 0 {
+			result.WriteString(" ")
+		}
+
+		if i < len(targetWords) {
+			targetWord := targetWords[i]
+
+			if userWord == targetWord {
+				// Word is complete and correct
+				result.WriteString(InputStyle.Render(userWord))
+			} else if isPrefixOf(userWord, targetWord) {
+				// Word is incomplete but correct so far
+				result.WriteString(userWord)
+			} else {
+				// Word is either complete and incorrect, or incomplete and incorrect
+				result.WriteString(ErrorStyle.Render(userWord))
+			}
+		} else {
+			// Extra words beyond target text
+			result.WriteString(ErrorStyle.Render(userWord))
+		}
+	}
+
+	return result.String()
+}
+
+// isPrefixOf checks if s1 is a prefix of s2
+func isPrefixOf(s1, s2 string) bool {
+	if len(s1) > len(s2) {
+		return false
+	}
+	return s2[:len(s1)] == s1
+}
+
+func (m TypingModel) formatElapsedTime() string {
+	if !m.timerRunning {
+		return "00:00"
+	}
+
+	elapsed := time.Since(m.startTime)
+	minutes := int(elapsed.Minutes())
+	seconds := int(elapsed.Seconds()) % 60
+
+	return fmt.Sprintf("%02d:%02d", minutes, seconds)
+}
+
 func (m TypingModel) View() string {
-	pad := strings.Repeat(" ", Padding)
+	padStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	pad := padStyle.Render(strings.Repeat(" ", Padding))
+
+	// Timer display
+	timerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFDB58")).
+		Bold(true).
+		Padding(0, 1)
+	timerDisplay := timerStyle.Render(m.formatElapsedTime())
 
 	formattedText := TextToTypeStyle.Render(m.targetText)
 
-	// WARN:DEBUG feature
-	userTyped := m.textarea.Value()
+	userTyped := m.CompareWithTarget()
 	previewStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#7F9ABE")).
 		Padding(1).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7F9ABE")).
 		Width(MaxWidth)
 
-	typingPreview := previewStyle.Render("debug window, live text:\n" + userTyped)
+	typingPreview := previewStyle.Render("Live typing:\n" + userTyped)
 
-	//TODO: rendering seems magic! lookup the view method , dont trust it
 	textareaView := m.textarea.View()
 	instructions := HelpStyle("Type the text above. Press ESC to quit, TAB to restart.")
 
 	content := "\n" +
-		//TODO: the \n count should be derried from actual text (calculated based on terminal width! oh god i already can feel "fuck microsoft powershell" vibes)
-		pad + "GoTyper - Typing Practice" + "\n\n" +
+		pad + "GoTyper - Typing Practice " + timerDisplay + "\n\n" +
 		formattedText + "\n\n" +
 		textareaView + "\n\n" +
 		instructions + "\n\n" +
