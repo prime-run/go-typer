@@ -9,7 +9,7 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start a new game",
 	Long:  `Start a new game of Go Typer. This command will initialize a new game session.`,
-	Run:   ui.ProgressBar,
+	Run:   ui.StartLoading,
 }
 
 func init() {
