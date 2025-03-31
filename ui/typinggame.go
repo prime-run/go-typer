@@ -5,30 +5,29 @@ package ui
 //
 import (
 	"fmt"
-	"os"
-	"strings"
-
-	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"os"
+	"strings"
 )
 
 type TypingModel struct {
-	textInput  textinput.Model
+	textarea   textarea.Model
 	targetText string
 	width      int
 	height     int
 }
 
 func NewTypingModel(width, height int) TypingModel {
-	ti := textinput.New()
-	ti.Placeholder = "Start typing..."
-	ti.Focus()
-	ti.CharLimit = 256
-	ti.Width = MaxWidth
+	ta := textarea.New()
+	ta.Placeholder = "Start typing here..."
+	ta.Focus()
+	ta.SetWidth(MaxWidth)
+	ta.SetHeight(3)
 
 	return TypingModel{
-		textInput:  ti,
+		textarea:   ta,
 		targetText: SampleText,
 		width:      width,
 		height:     height,
@@ -36,7 +35,7 @@ func NewTypingModel(width, height int) TypingModel {
 }
 
 func (m TypingModel) Init() tea.Cmd {
-	return textinput.Blink
+	return textarea.Blink
 }
 
 func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -47,17 +46,18 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
-		case tea.KeyEnter:
+		case tea.KeyTab:
+			// reset the game
 			return NewTypingModel(m.width, m.height), nil
 		}
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.textInput.Width = MaxWidth
+		m.textarea.SetWidth(MaxWidth)
 	}
 
-	m.textInput, cmd = m.textInput.Update(msg)
+	m.textarea, cmd = m.textarea.Update(msg)
 	return m, cmd
 }
 
@@ -65,14 +65,27 @@ func (m TypingModel) View() string {
 	pad := strings.Repeat(" ", Padding)
 
 	formattedText := TextToTypeStyle.Render(m.targetText)
-	input := m.textInput.View()
-	instructions := HelpStyle("Type the text above. Press ESC to quit, ENTER to restart.")
+
+	// WARN:DEBUG feature
+	userTyped := m.textarea.Value()
+	previewStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7F9ABE")).
+		Padding(1).
+		Width(MaxWidth)
+
+	typingPreview := previewStyle.Render("debug window, live text:\n" + userTyped)
+
+	//TODO: rendering seems magic! lookup the view method , dont trust it
+	textareaView := m.textarea.View()
+	instructions := HelpStyle("Type the text above. Press ESC to quit, TAB to restart.")
 
 	content := "\n" +
+		//TODO: the \n count should be derried from actual text (calculated based on terminal width! oh god i already can feel "fuck microsoft powershell" vibes)
 		pad + "GoTyper - Typing Practice" + "\n\n" +
-		pad + formattedText + "\n\n" +
-		pad + input + "\n\n" +
-		pad + instructions
+		formattedText + "\n\n" +
+		textareaView + "\n\n" +
+		instructions + "\n\n" +
+		typingPreview
 
 	if m.width > 0 {
 		return lipgloss.Place(m.width, m.height,
@@ -90,7 +103,7 @@ func StartTypingGame(width, height int) tea.Model {
 func RunTypingGame() {
 	p := tea.NewProgram(NewTypingModel(0, 0), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error running program: %v\n", err)
+		fmt.Printf("Some thing went wrong: %v\n", err)
 		os.Exit(1)
 	}
 }
