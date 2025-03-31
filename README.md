@@ -74,12 +74,12 @@ togo: a terminal-based todo manager built with same tech!
 
 Contributions are always welcome!
 
-- Please checkout `todo.md` for next steps.
+- Please checkout [todos](todos.md) for next steps.
 - Features in ```dev``` branch haven't been tested for different shells and terminal emulators.
 
 
 
 ## License
 
-[MIT](License)
+[MIT](LICENSE)
 
