@@ -28,20 +28,27 @@ git clone https://github.com/prime-run/go-typer
 cd go-typer
 #to pick up the the ongoing changes
 git checkout -b dev
-
 go build -o go-typer
 ```
 
+<<<<<<< HEAD
+
 ### docker
 
-```bash
+````bash
 git clone https://github.com/prime-run/go-typer
+=======
+- ### docker
+
+```bash
+#clone the repo
+>>>>>>> c5db3db (dockerized)
 docker build -t go-typer .
 docker run --rm -it my-go-app
 # above command Runs ./go-typer start inside the container
 # docker run --rm -it go-typer [command] [--flag] also works
 
-```
+````
 
 ## Used in this project
 
