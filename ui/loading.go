@@ -1,4 +1,3 @@
-// FROM lipgloss examples we connect it to server fetching text ofc
 package ui
 
 import (
@@ -22,28 +21,6 @@ type LoadingModel struct {
 	height   int
 }
 
-// type Option func(*Model)
-//
-// // WithDefaultGradient sets a gradient fill with default colors.
-//
-//	func WithDefaultGradient() Option {
-//		return WithGradient("#5A56E0", "#EE6FF8")
-//	}
-//
-// // WithGradient sets a gradient fill blending between two colors.
-//
-//	func WithGradient(colorA, colorB string) Option {
-//		return func(m *Model) {
-//			m.setRamp(colorA, colorB, false)
-//		}
-//	}
-//
-// // WithDefaultScaledGradient sets a gradient with default colors, and scales the
-// // gradient to fit the filled portion of the ramp.
-//
-//	func WithDefaultScaledGradient() Option {
-//		return WithScaledGradient("#5A56E0", "#EE6FF8")
-//	}
 func NewLoadingModel() LoadingModel {
 	return LoadingModel{
 		progress: progress.New(progress.WithDefaultGradient()),
@@ -64,7 +41,6 @@ func (m LoadingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.progress.Width = msg.Width - Padding*2 - 4
-		//FIX:my lsp says it can be modernized using min XD
 		if m.progress.Width > MaxWidth {
 			m.progress.Width = MaxWidth
 		}
@@ -82,6 +58,22 @@ func (m LoadingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		progressModel, cmd := m.progress.Update(msg)
 		m.progress = progressModel.(progress.Model)
 		return m, cmd
+
+	case StartGameMsg:
+
+		selectedCursorType := BlockCursor
+		if msg.cursorType == "underline" {
+			selectedCursorType = UnderlineCursor
+		}
+		DefaultCursorType = selectedCursorType
+
+		if msg.theme != "" {
+			if err := LoadTheme(msg.theme); err == nil {
+				UpdateStyles()
+			}
+		}
+
+		return m, nil
 
 	default:
 		return m, nil
@@ -112,8 +104,28 @@ func tickCmd() tea.Cmd {
 }
 
 func StartLoading(cmd *cobra.Command, args []string) {
+	StartLoadingWithOptions("block")
+}
+
+func StartLoadingWithOptions(cursorTypeStr string) {
+	selectedCursorType := BlockCursor
+	if cursorTypeStr == "underline" {
+		selectedCursorType = UnderlineCursor
+	}
+
+	DefaultCursorType = selectedCursorType
+
 	if _, err := tea.NewProgram(NewLoadingModel(), tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Oh no!", err)
 		os.Exit(1)
 	}
+}
+
+func ReloadTheme(filePath string) error {
+	err := LoadTheme(filePath)
+	if err != nil {
+		return err
+	}
+	UpdateStyles()
+	return nil
 }
