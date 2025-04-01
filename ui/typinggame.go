@@ -1,8 +1,7 @@
 package ui
 
-//
 //TODO: live hilight placeholders
-//
+
 import (
 	"fmt"
 	"os"
@@ -24,14 +23,27 @@ type TypingModel struct {
 	timerRunning     bool
 	currentWordIndex int
 	lastInput        string
+	userTyped        string
+	placeholderText  string
+	cursorPos        int
+	showPlaceholder  bool
+	expectedNextPos  int
+	correctChars     int
+	incorrectChars   int
+	typedChars       []rune
 }
 
 func NewTypingModel(width, height int) TypingModel {
 	ta := textarea.New()
-	ta.Placeholder = "Start typing here..."
 	ta.Focus()
 	ta.SetWidth(MaxWidth)
 	ta.SetHeight(3)
+
+	// Remove textarea styling and set actual target text as initial content
+	ta.Prompt = ""
+	ta.FocusedStyle.Base = lipgloss.NewStyle()
+	ta.BlurredStyle.Base = lipgloss.NewStyle()
+	ta.SetValue(SampleText)
 
 	return TypingModel{
 		textarea:         ta,
@@ -42,17 +54,25 @@ func NewTypingModel(width, height int) TypingModel {
 		timerRunning:     false,
 		currentWordIndex: 0,
 		lastInput:        "",
+		userTyped:        "",
+		placeholderText:  SampleText,
+		cursorPos:        0,
+		showPlaceholder:  true,
+		expectedNextPos:  0,
+		correctChars:     0,
+		incorrectChars:   0,
+		typedChars:       []rune{},
 	}
 }
 
 func (m TypingModel) Init() tea.Cmd {
-	return textarea.Blink
+	cmd := m.updateTextarea()
+	return tea.Batch(cmd, textarea.Blink)
 }
 
 func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
-	// Start the timer on first keystroke
 	if !m.timerRunning {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -70,6 +90,60 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyTab:
 			return NewTypingModel(m.width, m.height), nil
+		case tea.KeyBackspace:
+			if len(m.typedChars) > 0 {
+				m.typedChars = m.typedChars[:len(m.typedChars)-1]
+				if m.expectedNextPos > 0 {
+					m.expectedNextPos--
+				}
+				m.updateTextarea()
+				return m, nil
+			}
+		case tea.KeySpace:
+			m.typedChars = append(m.typedChars, ' ')
+
+			if m.expectedNextPos < len(m.targetText) {
+				if m.targetText[m.expectedNextPos] == ' ' {
+					m.correctChars++
+				} else {
+					m.incorrectChars++
+					for m.expectedNextPos < len(m.targetText) && m.targetText[m.expectedNextPos] != ' ' {
+						m.expectedNextPos++
+					}
+				}
+
+				if m.expectedNextPos < len(m.targetText) {
+					m.expectedNextPos++
+				}
+			}
+
+			m.updateTextarea()
+			return m, nil
+		default:
+			if len(msg.String()) == 1 {
+				char := []rune(msg.String())[0]
+				m.typedChars = append(m.typedChars, char)
+
+				if m.expectedNextPos < len(m.targetText) {
+					if m.targetText[m.expectedNextPos] == byte(char) {
+						m.correctChars++
+					} else {
+						m.incorrectChars++
+						if m.targetText[m.expectedNextPos] == ' ' {
+							m.expectedNextPos++
+						}
+					}
+
+					if m.expectedNextPos < len(m.targetText) {
+						m.expectedNextPos++
+					}
+				} else {
+					m.incorrectChars++
+				}
+
+				m.updateTextarea()
+				return m, nil
+			}
 		}
 
 	case tea.WindowSizeMsg:
@@ -78,106 +152,52 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.textarea.SetWidth(MaxWidth)
 	}
 
-	// Update the textarea first to capture all keystroke input
 	m.textarea, cmd = m.textarea.Update(msg)
-
-	// Check if a space was just added
-	currentInput := m.textarea.Value()
-	if len(currentInput) > len(m.lastInput) &&
-		strings.HasSuffix(currentInput, " ") &&
-		!strings.HasSuffix(m.lastInput, " ") {
-		// Space was just pressed, handle word advancement
-		m.advanceToNextWord()
-	}
-
-	m.lastInput = currentInput
-	m.typingLog = append(m.typingLog, currentInput)
+	m.userTyped = string(m.typedChars)
+	m.lastInput = m.userTyped
+	m.typingLog = append(m.typingLog, m.userTyped)
 
 	return m, cmd
 }
 
-// advanceToNextWord moves to the next word in the target text
-func (m *TypingModel) advanceToNextWord() {
-	targetWords := strings.Fields(m.targetText)
-	if m.currentWordIndex < len(targetWords)-1 {
-		m.currentWordIndex++
+func (m *TypingModel) updateTextarea() tea.Cmd {
+	m.userTyped = string(m.typedChars)
+
+	if m.expectedNextPos >= len(m.targetText) {
+		m.textarea.SetValue(m.userTyped)
+		m.textarea.SetCursor(len(m.userTyped))
+		return nil
 	}
+
+	remainingPortion := m.targetText[m.expectedNextPos:]
+	displayText := m.userTyped + remainingPortion
+
+	m.textarea.SetValue(displayText)
+	m.textarea.SetCursor(len(m.userTyped))
+
+	return nil
 }
 
-// CompareWithTarget compares character by character and applies MonkeyType-style validation
 func (m TypingModel) CompareWithTarget() string {
-	userInput := m.textarea.Value()
-
-	if userInput == "" {
+	if len(m.typedChars) == 0 {
 		return "Start typing..."
 	}
 
-	targetWords := strings.Fields(m.targetText)
-	typedContent := userInput
-	typedWords := strings.Split(typedContent, " ")
-
 	var result strings.Builder
 
-	for i, typedWord := range typedWords {
-		if i > 0 {
-			result.WriteString(" ")
-		}
-
-		if typedWord == "" {
-			continue
-		}
-
-		if i < len(targetWords) {
-			targetWord := targetWords[i]
-			result.WriteString(m.compareWord(typedWord, targetWord))
-		} else {
-			// Extra words beyond target text
-			result.WriteString(ErrorStyle.Render(typedWord))
-		}
-	}
-
-	return result.String()
-}
-
-// compareWord compares single words character by character
-func (m TypingModel) compareWord(typed, target string) string {
-	var result strings.Builder
-
-	// Process character by character
-	for i, char := range typed {
-		if i < len(target) {
-			// Character within target word range
-			if string(char) == string(target[i]) {
-				// Correct character
-				result.WriteString(string(char))
+	for i, char := range m.typedChars {
+		if i < len(m.targetText) {
+			if byte(char) == m.targetText[i] {
+				result.WriteString(InputStyle.Render(string(char)))
 			} else {
-				// Incorrect character
 				result.WriteString(ErrorStyle.Render(string(char)))
 			}
 		} else {
-			// Extra characters beyond target word
 			result.WriteString(ErrorStyle.Render(string(char)))
 		}
 	}
 
-	// If the word is completely and correctly typed
-	if typed == target {
-		return InputStyle.Render(typed)
-	}
-
-	// If the word is undertyped (they pressed space before finishing)
-	if len(typed) < len(target) && strings.HasSuffix(typed, " ") {
-		return ErrorStyle.Render(result.String())
-	}
-
 	return result.String()
-}
-
-func isPrefixOf(s1, s2 string) bool {
-	if len(s1) > len(s2) {
-		return false
-	}
-	return s2[:len(s1)] == s1
 }
 
 func (m TypingModel) formatElapsedTime() string {
@@ -195,7 +215,9 @@ func (m TypingModel) formatElapsedTime() string {
 func (m TypingModel) View() string {
 	pad := PadStyle.Render(strings.Repeat(" ", Padding))
 	timerDisplay := TimerStyle.Render(m.formatElapsedTime())
-	formattedText := TextToTypeStyle.Render(m.targetText)
+
+	targetDisplay := m.renderTargetWithProgress()
+
 	userTyped := m.CompareWithTarget()
 	typingPreview := PreviewStyle.Render("Live Typing Analysis:\n" + userTyped)
 	textareaView := m.textarea.View()
@@ -203,7 +225,7 @@ func (m TypingModel) View() string {
 
 	content := "\n" +
 		pad + "GoTyper - Typing Practice " + timerDisplay + "\n\n" +
-		formattedText + "\n\n" +
+		targetDisplay + "\n\n" +
 		textareaView + "\n\n" +
 		instructions + "\n\n" +
 		typingPreview
@@ -215,6 +237,34 @@ func (m TypingModel) View() string {
 	}
 
 	return content
+}
+
+func (m TypingModel) renderTargetWithProgress() string {
+	if len(m.typedChars) == 0 {
+		return TextToTypeStyle.Render(m.targetText)
+	}
+
+	var result strings.Builder
+
+	for i, char := range m.targetText {
+		if i < len(m.typedChars) {
+			typedChar := m.typedChars[i]
+			if typedChar == char {
+				result.WriteString(InputStyle.Render(string(char)))
+			} else {
+				result.WriteString(ErrorStyle.Render(string(char)))
+			}
+		} else {
+			result.WriteString(string(char))
+		}
+	}
+
+	if len(m.typedChars) > len(m.targetText) {
+		extraChars := string(m.typedChars[len(m.targetText):])
+		result.WriteString(ErrorStyle.Render(extraChars))
+	}
+
+	return TextContainerStyle.Render(result.String())
 }
 
 func StartTypingGame(width, height int) tea.Model {
