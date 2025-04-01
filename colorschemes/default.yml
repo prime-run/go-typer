@@ -1,0 +1,22 @@
+# GoTyper Default Theme
+# Light green/blue theme with good contrast
+
+# UI Elements
+help_text: "#626262"       # Help text at the bottom
+timer: "#FFDB58"           # Timer display
+border: "#7F9ABE"          # Border color for containers
+
+# Text Display
+text_dim: "#555555"        # Untyped text
+text_preview: "#7F9ABE"    # Preview text color
+text_correct: "#00FF00"    # Correctly typed text
+text_error: "#FF0000"      # Incorrectly typed characters
+text_partial_error: "#FF8C00"  # Correct characters in error words
+
+# Cursor
+cursor_fg: "#FFFFFF"       # Cursor foreground color
+cursor_bg: "#00AAFF"       # Cursor background color
+cursor_underline: "#00AAFF" # Underline cursor color
+
+# Miscellaneous
+padding: "#888888"         # Padding elements color 

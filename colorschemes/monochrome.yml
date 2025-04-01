@@ -1,0 +1,22 @@
+# GoTyper Monochrome Theme
+# Minimalist black and white theme with grayscale
+
+# UI Elements
+help_text: "#757575"       # Help text at the bottom
+timer: "#BBBBBB"           # Timer display
+border: "#999999"          # Border color for containers
+
+# Text Display
+text_dim: "#555555"        # Untyped text
+text_preview: "#AAAAAA"    # Preview text color
+text_correct: "#FFFFFF"    # Correctly typed text
+text_error: "#999999"      # Incorrectly typed characters
+text_partial_error: "#DDDDDD"  # Correct characters in error words
+
+# Cursor
+cursor_fg: "#000000"       # Cursor foreground color
+cursor_bg: "#FFFFFF"       # Cursor background color
+cursor_underline: "#FFFFFF" # Underline cursor color
+
+# Miscellaneous
+padding: "#777777"         # Padding elements color 

@@ -1,0 +1,22 @@
+# GoTyper Dark Theme
+# Dark blue/purple theme for night coding
+
+# UI Elements
+help_text: "#888888"       # Help text at the bottom
+timer: "#A177FF"           # Timer display
+border: "#5661B3"          # Border color for containers
+
+# Text Display
+text_dim: "#444444"        # Untyped text
+text_preview: "#8892BF"    # Preview text color
+text_correct: "#36D399"    # Correctly typed text
+text_error: "#F87272"      # Incorrectly typed characters
+text_partial_error: "#FBBD23"  # Correct characters in error words
+
+# Cursor
+cursor_fg: "#222222"       # Cursor foreground color
+cursor_bg: "#7B93DB"       # Cursor background color
+cursor_underline: "#7B93DB" # Underline cursor color
+
+# Miscellaneous
+padding: "#666666"         # Padding elements color 
