@@ -5,7 +5,7 @@
 - overtype (ot) is when type letters > current word letter
 - undertype is when word is not overtyped (assuing player is dont typing current word)
 - space devider edgecase : undertyped and space is pressed -> the standard is just jump to the next word and mark current one as incorrect (I personally don't like it space should count as a letter and it's easier to implement but we go for the standard!)
-- the placeholder should shift forward in overtype and if we assign `<space>` as the begining of the next word while countong it as a logical devider we don't have to deal with problems caused by overtype shift in validation!
+- the placeholder should shift forward in overtype and if we assign `<space>` as the begining of the next word while countong it as a logical devider we don't have to deal with problems caused by overtype shift in validation! another solution is to refactor validation by having and expected next word conect, and since we know where spaces are, we shift if we get letter in space place and we jump to next word if we get space in letter's place! the rest is even easier to validate!
 
 ## dev todos:
 

@@ -28,7 +28,6 @@ var TimerStyle = lipgloss.NewStyle().
 	Bold(true).
 	Padding(0, 1)
 
-// live typing preview box style
 var PreviewStyle = lipgloss.NewStyle().
 	Padding(1).
 	Margin(8, 0, 0, 0).
@@ -36,10 +35,8 @@ var PreviewStyle = lipgloss.NewStyle().
 	BorderForeground(lipgloss.Color("#7F9ABE")).
 	Width(MaxWidth)
 
-// dim style for placeholder text
 var DimStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
 
-// text container style for target text display
 var TextContainerStyle = lipgloss.NewStyle().
 	Padding(1).
 	Width(MaxWidth)

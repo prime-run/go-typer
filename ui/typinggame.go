@@ -27,6 +27,10 @@ type TypingModel struct {
 	placeholderText  string
 	cursorPos        int
 	showPlaceholder  bool
+	expectedNextPos  int
+	correctChars     int
+	incorrectChars   int
+	typedChars       []rune
 }
 
 func NewTypingModel(width, height int) TypingModel {
@@ -34,6 +38,12 @@ func NewTypingModel(width, height int) TypingModel {
 	ta.Focus()
 	ta.SetWidth(MaxWidth)
 	ta.SetHeight(3)
+
+	// Remove textarea styling and set actual target text as initial content
+	ta.Prompt = ""
+	ta.FocusedStyle.Base = lipgloss.NewStyle()
+	ta.BlurredStyle.Base = lipgloss.NewStyle()
+	ta.SetValue(SampleText)
 
 	return TypingModel{
 		textarea:         ta,
@@ -48,6 +58,10 @@ func NewTypingModel(width, height int) TypingModel {
 		placeholderText:  SampleText,
 		cursorPos:        0,
 		showPlaceholder:  true,
+		expectedNextPos:  0,
+		correctChars:     0,
+		incorrectChars:   0,
+		typedChars:       []rune{},
 	}
 }
 
@@ -77,19 +91,56 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyTab:
 			return NewTypingModel(m.width, m.height), nil
 		case tea.KeyBackspace:
-			if len(m.userTyped) > 0 {
-				m.userTyped = m.userTyped[:len(m.userTyped)-1]
+			if len(m.typedChars) > 0 {
+				m.typedChars = m.typedChars[:len(m.typedChars)-1]
+				if m.expectedNextPos > 0 {
+					m.expectedNextPos--
+				}
 				m.updateTextarea()
 				return m, nil
 			}
 		case tea.KeySpace:
-			m.userTyped += " "
+			m.typedChars = append(m.typedChars, ' ')
+
+			if m.expectedNextPos < len(m.targetText) {
+				if m.targetText[m.expectedNextPos] == ' ' {
+					m.correctChars++
+				} else {
+					m.incorrectChars++
+					for m.expectedNextPos < len(m.targetText) && m.targetText[m.expectedNextPos] != ' ' {
+						m.expectedNextPos++
+					}
+				}
+
+				if m.expectedNextPos < len(m.targetText) {
+					m.expectedNextPos++
+				}
+			}
+
 			m.updateTextarea()
-			m.advanceToNextWord()
 			return m, nil
 		default:
 			if len(msg.String()) == 1 {
-				m.userTyped += msg.String()
+				char := []rune(msg.String())[0]
+				m.typedChars = append(m.typedChars, char)
+
+				if m.expectedNextPos < len(m.targetText) {
+					if m.targetText[m.expectedNextPos] == byte(char) {
+						m.correctChars++
+					} else {
+						m.incorrectChars++
+						if m.targetText[m.expectedNextPos] == ' ' {
+							m.expectedNextPos++
+						}
+					}
+
+					if m.expectedNextPos < len(m.targetText) {
+						m.expectedNextPos++
+					}
+				} else {
+					m.incorrectChars++
+				}
+
 				m.updateTextarea()
 				return m, nil
 			}
@@ -102,7 +153,7 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	m.textarea, cmd = m.textarea.Update(msg)
-
+	m.userTyped = string(m.typedChars)
 	m.lastInput = m.userTyped
 	m.typingLog = append(m.typingLog, m.userTyped)
 
@@ -110,92 +161,34 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *TypingModel) updateTextarea() tea.Cmd {
-	if len(m.userTyped) == 0 && m.showPlaceholder {
-		placeholderText := strings.Repeat("·", len(m.targetText))
-		m.textarea.SetValue(placeholderText)
-		m.textarea.SetCursor(0)
+	m.userTyped = string(m.typedChars)
+
+	if m.expectedNextPos >= len(m.targetText) {
+		m.textarea.SetValue(m.userTyped)
+		m.textarea.SetCursor(len(m.userTyped))
 		return nil
 	}
 
-	typed := m.userTyped
+	remainingPortion := m.targetText[m.expectedNextPos:]
+	displayText := m.userTyped + remainingPortion
 
-	targetWords := strings.Fields(m.targetText)
-	typedWords := strings.Fields(typed)
-
-	shift := 0
-
-	for i, typedWord := range typedWords {
-		if i < len(targetWords) {
-			targetWord := targetWords[i]
-			if len(typedWord) > len(targetWord) {
-				shift += len(typedWord) - len(targetWord)
-			}
-		} else {
-			shift += len(typedWord) + 1
-		}
-	}
-
-	var placeholderText string
-
-	if m.showPlaceholder && len(typed)+shift < len(m.targetText) {
-		remainingChars := len(m.targetText) - (len(typed) + shift)
-		placeholderChars := "·"
-		placeholderText = strings.Repeat(placeholderChars, remainingChars)
-	}
-
-	m.textarea.SetValue(typed + placeholderText)
-	m.textarea.SetCursor(len(typed))
+	m.textarea.SetValue(displayText)
+	m.textarea.SetCursor(len(m.userTyped))
 
 	return nil
 }
 
-func (m *TypingModel) advanceToNextWord() {
-	targetWords := strings.Fields(m.targetText)
-	if m.currentWordIndex < len(targetWords)-1 {
-		m.currentWordIndex++
-	}
-}
-
 func (m TypingModel) CompareWithTarget() string {
-	userInput := m.userTyped
-
-	if userInput == "" {
+	if len(m.typedChars) == 0 {
 		return "Start typing..."
 	}
 
-	targetWords := strings.Fields(m.targetText)
-	typedContent := userInput
-	typedWords := strings.Split(typedContent, " ")
-
 	var result strings.Builder
 
-	for i, typedWord := range typedWords {
-		if i > 0 {
-			result.WriteString(" ")
-		}
-
-		if typedWord == "" {
-			continue
-		}
-
-		if i < len(targetWords) {
-			targetWord := targetWords[i]
-			result.WriteString(m.compareWord(typedWord, targetWord))
-		} else {
-			result.WriteString(ErrorStyle.Render(typedWord))
-		}
-	}
-
-	return result.String()
-}
-
-func (m TypingModel) compareWord(typed, target string) string {
-	var result strings.Builder
-
-	for i, char := range typed {
-		if i < len(target) {
-			if string(char) == string(target[i]) {
-				result.WriteString(string(char))
+	for i, char := range m.typedChars {
+		if i < len(m.targetText) {
+			if byte(char) == m.targetText[i] {
+				result.WriteString(InputStyle.Render(string(char)))
 			} else {
 				result.WriteString(ErrorStyle.Render(string(char)))
 			}
@@ -204,23 +197,8 @@ func (m TypingModel) compareWord(typed, target string) string {
 		}
 	}
 
-	if typed == target {
-		return InputStyle.Render(typed)
-	}
-
-	if len(typed) < len(target) && strings.HasSuffix(typed, " ") {
-		return ErrorStyle.Render(result.String())
-	}
-
 	return result.String()
 }
-
-// func isPrefixOf(s1, s2 string) bool {
-// 	if len(s1) > len(s2) {
-// 		return false
-// 	}
-// 	return s2[:len(s1)] == s1
-// }
 
 func (m TypingModel) formatElapsedTime() string {
 	if !m.timerRunning {
@@ -262,52 +240,28 @@ func (m TypingModel) View() string {
 }
 
 func (m TypingModel) renderTargetWithProgress() string {
-	if len(m.userTyped) == 0 {
+	if len(m.typedChars) == 0 {
 		return TextToTypeStyle.Render(m.targetText)
 	}
 
-	targetWords := strings.Fields(m.targetText)
-	typedWords := strings.Fields(m.userTyped)
-
 	var result strings.Builder
-	var currentPos int
 
-	for i, targetWord := range targetWords {
-		if i > 0 {
-			if currentPos < len(m.userTyped) && currentPos < len(m.targetText) && m.targetText[currentPos] == ' ' {
-				result.WriteString(InputStyle.Render(" "))
+	for i, char := range m.targetText {
+		if i < len(m.typedChars) {
+			typedChar := m.typedChars[i]
+			if typedChar == char {
+				result.WriteString(InputStyle.Render(string(char)))
 			} else {
-				result.WriteString(" ")
-			}
-			currentPos++
-		}
-
-		if i < len(typedWords) {
-			typedWord := typedWords[i]
-
-			for j, char := range targetWord {
-				if j < len(typedWord) {
-					if j < len(typedWord) && j < len(targetWord) &&
-						string(typedWord[j]) == string(targetWord[j]) {
-						result.WriteString(InputStyle.Render(string(char)))
-					} else {
-						result.WriteString(ErrorStyle.Render(string(char)))
-					}
-				} else {
-					result.WriteString(string(char))
-				}
-				currentPos++
-			}
-
-			if len(typedWord) > len(targetWord) {
-				extraChars := typedWord[len(targetWord):]
-				result.WriteString(ErrorStyle.Render(extraChars))
-				currentPos += len(extraChars)
+				result.WriteString(ErrorStyle.Render(string(char)))
 			}
 		} else {
-			result.WriteString(targetWord)
-			currentPos += len(targetWord)
+			result.WriteString(string(char))
 		}
+	}
+
+	if len(m.typedChars) > len(m.targetText) {
+		extraChars := string(m.typedChars[len(m.targetText):])
+		result.WriteString(ErrorStyle.Render(extraChars))
 	}
 
 	return TextContainerStyle.Render(result.String())
