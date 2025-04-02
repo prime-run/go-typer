@@ -7,7 +7,6 @@ const (
 	UnderlineCursor
 )
 
-// Global default cursor type that can be set via command line
 var DefaultCursorType CursorType = BlockCursor
 
 type Cursor struct {

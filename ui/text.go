@@ -181,7 +181,6 @@ func (t *Text) IsComplete() bool {
 	return true
 }
 
-// GetCursorPos returns the current cursor position
 func (t *Text) GetCursorPos() int {
 	return t.cursorPos
 }

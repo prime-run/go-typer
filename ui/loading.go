@@ -60,15 +60,13 @@ func (m LoadingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case StartGameMsg:
-		// Handle a message from the start screen
-		// Set the cursor type
+
 		selectedCursorType := BlockCursor
 		if msg.cursorType == "underline" {
 			selectedCursorType = UnderlineCursor
 		}
 		DefaultCursorType = selectedCursorType
 
-		// Set the theme if provided
 		if msg.theme != "" {
 			if err := LoadTheme(msg.theme); err == nil {
 				UpdateStyles()
@@ -123,7 +121,6 @@ func StartLoadingWithOptions(cursorTypeStr string) {
 	}
 }
 
-// ReloadTheme reloads the theme from the specified file path and updates all styles
 func ReloadTheme(filePath string) error {
 	err := LoadTheme(filePath)
 	if err != nil {

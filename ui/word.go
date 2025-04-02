@@ -198,7 +198,6 @@ func (w *Word) Render(showCursor bool) string {
 
 	rendered := result.String()
 
-	// Only log active word rendering for performance analysis
 	if w.active {
 		renderTime := time.Since(startTime)
 		DebugLog("Word: Active word render completed in %s, length: %d", renderTime, len(rendered))
