@@ -13,24 +13,20 @@ const (
 
 // TODO:a theming system would be nice
 
-
 func UpdateStyles() {
-	
+
 	helpStyle := lipgloss.NewStyle().Foreground(GetColor("help_text"))
 	HelpStyle = helpStyle.Render
 
-	
 	TextToTypeStyle = lipgloss.NewStyle().Foreground(GetColor("text_preview")).Padding(1).Width(MaxWidth)
 	InputStyle = lipgloss.NewStyle().Foreground(GetColor("text_correct"))
 	ErrorStyle = lipgloss.NewStyle().Foreground(GetColor("text_error"))
 	PartialErrorStyle = lipgloss.NewStyle().Foreground(GetColor("text_partial_error"))
 	DimStyle = lipgloss.NewStyle().Foreground(GetColor("text_dim"))
 
-	
 	CenterStyle = lipgloss.NewStyle().Align(lipgloss.Center)
 	PadStyle = lipgloss.NewStyle().Foreground(GetColor("padding"))
 
-	
 	TimerStyle = lipgloss.NewStyle().
 		Foreground(GetColor("timer")).
 		Bold(true).
@@ -47,7 +43,6 @@ func UpdateStyles() {
 		Padding(1).
 		Width(MaxWidth)
 
-	
 	BlockCursorStyle = lipgloss.NewStyle().
 		Foreground(GetColor("cursor_fg")).
 		Background(GetColor("cursor_bg"))
@@ -56,7 +51,6 @@ func UpdateStyles() {
 		Foreground(GetColor("cursor_underline")).
 		Underline(true)
 }
-
 
 var HelpStyle func(...string) string
 var TextToTypeStyle lipgloss.Style
@@ -72,27 +66,20 @@ var TextContainerStyle lipgloss.Style
 var BlockCursorStyle lipgloss.Style
 var UnderlineCursorStyle lipgloss.Style
 
-
 const (
-	
 	SampleTextNormal = "The quick brown fox jumps over the lazy dog. Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++."
 
-	
 	SampleTextNormalWithNumbers = "The quick brown fox jumps over the 5 lazy dogs. In 2023, programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++, with over 300 languages in existence."
 
-	
 	SampleTextSimple = "the quick brown fox jumps over the lazy dog programming is the process of creating a set of instructions that tell a computer how to perform a task programming can be done using a variety of computer programming languages such as javascript python and c plus plus"
 
-	
 	SampleTextSimpleWithNumbers = "the quick brown fox jumps over 5 lazy dogs in 2023 programming is the process of creating a set of instructions that tell a computer how to perform a task programming can be done using a variety of computer programming languages such as javascript python and c plus plus with over 300 languages in existence"
 )
 
-
 func init() {
-	
+
 	InitTheme()
 
-	
 	UpdateStyles()
 }
 

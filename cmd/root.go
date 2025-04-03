@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/prime-run/go-typer/ui"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var rootCmd = &cobra.Command{
@@ -20,7 +19,6 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
@@ -30,7 +28,6 @@ func Execute() {
 
 func init() {
 	ui.InitSettings()
-
 
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

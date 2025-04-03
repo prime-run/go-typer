@@ -16,7 +16,7 @@ type UserSettings struct {
 
 const (
 	GameModeNormal = "normal"
-	GameModeSimple = "simple" 
+	GameModeSimple = "simple"
 )
 
 var DefaultSettings = UserSettings{
@@ -26,9 +26,7 @@ var DefaultSettings = UserSettings{
 	UseNumbers: true,
 }
 
-
 var CurrentSettings UserSettings
-
 
 func GetConfigDir() (string, error) {
 	configDir, err := os.UserConfigDir()
@@ -38,14 +36,12 @@ func GetConfigDir() (string, error) {
 
 	appConfigDir := filepath.Join(configDir, "go-typer")
 
-	
 	if err := os.MkdirAll(appConfigDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create config directory: %w", err)
 	}
 
 	return appConfigDir, nil
 }
-
 
 func GetSettingsFilePath() (string, error) {
 	configDir, err := GetConfigDir()
@@ -56,12 +52,10 @@ func GetSettingsFilePath() (string, error) {
 	return filepath.Join(configDir, "settings.json"), nil
 }
 
-
 func LoadSettings() error {
-	
+
 	CurrentSettings = DefaultSettings
 
-	
 	settingsPath, err := GetSettingsFilePath()
 	if err != nil {
 		return fmt.Errorf("failed to get settings file path: %w", err)
@@ -70,23 +64,20 @@ func LoadSettings() error {
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			
+
 			return SaveSettings()
 		}
 		return fmt.Errorf("error reading settings file: %w", err)
 	}
 
-	
 	if err := json.Unmarshal(data, &CurrentSettings); err != nil {
 		return fmt.Errorf("error parsing settings file: %w", err)
 	}
 
-	
 	ApplySettings()
 
 	return nil
 }
-
 
 func SaveSettings() error {
 	settingsPath, err := GetSettingsFilePath()
@@ -94,20 +85,17 @@ func SaveSettings() error {
 		return fmt.Errorf("failed to get settings file path: %w", err)
 	}
 
-	
 	data, err := json.MarshalIndent(CurrentSettings, "", "  ")
 	if err != nil {
 		return fmt.Errorf("error marshaling settings: %w", err)
 	}
 
-	
 	if err := os.WriteFile(settingsPath, data, 0644); err != nil {
 		return fmt.Errorf("error writing settings file: %w", err)
 	}
 
 	return nil
 }
-
 
 func UpdateSettings(settings UserSettings) error {
 	if settings.ThemeName != "" {
@@ -118,32 +106,26 @@ func UpdateSettings(settings UserSettings) error {
 		CurrentSettings.CursorType = settings.CursorType
 	}
 
-	
 	if settings.GameMode != "" {
 		CurrentSettings.GameMode = settings.GameMode
 	}
 
-	
 	if settings.UseNumbers != CurrentSettings.UseNumbers {
 		CurrentSettings.UseNumbers = settings.UseNumbers
 	}
 
-	
 	ApplySettings()
 
-	
 	return SaveSettings()
 }
 
-
 func ApplySettings() {
-	
+
 	if CurrentSettings.ThemeName != "" {
 		LoadTheme(CurrentSettings.ThemeName)
 		UpdateStyles()
 	}
 
-	
 	if CurrentSettings.CursorType == "underline" {
 		DefaultCursorType = UnderlineCursor
 	} else {
@@ -151,13 +133,11 @@ func ApplySettings() {
 	}
 }
 
-
 func InitSettings() {
 	if err := LoadSettings(); err != nil {
 		fmt.Printf("Warning: Could not load settings: %v\n", err)
 		fmt.Println("Using default settings")
 
-		
 		CurrentSettings = DefaultSettings
 		ApplySettings()
 	}
