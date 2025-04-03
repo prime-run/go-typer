@@ -2,12 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/prime-run/go-typer/ui"
+	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/prime-run/go-typer/ui"
-	"github.com/spf13/cobra"
 )
 
 var cursorType string

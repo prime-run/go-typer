@@ -2,14 +2,13 @@ package ui
 
 import (
 	"fmt"
-	"os"
-	"strings"
-	"time"
-
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
+	"os"
+	"strings"
+	"time"
 )
 
 type tickMsg time.Time

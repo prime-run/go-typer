@@ -10,7 +10,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Message types
 type gameTickMsg time.Time
 type gameStateMsg struct {
 	text         *Text
@@ -50,7 +49,6 @@ func (m TypingModel) Init() tea.Cmd {
 	)
 }
 
-// A single tick command that repeats
 func gameTickCommand() tea.Cmd {
 	return tea.Tick(time.Millisecond*33, func(t time.Time) tea.Msg {
 		return gameTickMsg(t)
@@ -60,15 +58,13 @@ func gameTickCommand() tea.Cmd {
 func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case gameTickMsg:
-		// Only send refresh command if needed
 		if m.needsRefresh {
 			m.needsRefresh = false
 			DebugLog("Game: Refresh triggered by UI change")
 			return m, nil
 		}
 
-		// If it's been more than 5 seconds since the last keystroke and timer is running
-		// only refresh once per second to save resources
+		// refreshrate WARN:migh cause alot of issues!
 		if m.timerRunning && time.Since(m.lastKeyTime) > 5*time.Second {
 			return m, gameTickCommand()
 		}
@@ -137,9 +133,8 @@ func (m TypingModel) View() string {
 	startTime := time.Now()
 	DebugLog("Game: View rendering started")
 
-	// Create centered content
 	content := lipgloss.NewStyle().
-		Width(m.width * 3 / 4). // Use 75% of screen width for content
+		Width(m.width * 3 / 4).
 		Align(lipgloss.Center).
 		Render(
 			"\n" +
@@ -170,11 +165,9 @@ func (m TypingModel) View() string {
 						accuracy = float64(correct) / float64(total) * 100
 					}
 
-					// Calculate WPM
 					elapsedMinutes := time.Since(m.startTime).Minutes()
 					wpm := 0.0
 					if elapsedMinutes > 0 {
-						// Standard measure of 5 chars per word
 						wpm = float64(total*5) / elapsedMinutes / 5
 					}
 
@@ -183,7 +176,6 @@ func (m TypingModel) View() string {
 				})(),
 		)
 
-	// Place the content in the center of the screen
 	result := lipgloss.Place(m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
 		content)
@@ -210,10 +202,8 @@ func StartTypingGame(width, height int) tea.Model {
 func RunTypingGame() {
 	DebugLog("Game: RunTypingGame started")
 
-	// Log terminal info
 	DebugLog("Game: Running in terminal mode")
 
-	// Log current settings
 	DebugLog("Game: Running with settings - Theme: %s, Cursor: %s, Mode: %s, UseNumbers: %v",
 		CurrentSettings.ThemeName, CurrentSettings.CursorType,
 		CurrentSettings.GameMode, CurrentSettings.UseNumbers)

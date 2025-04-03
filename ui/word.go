@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"slices"
 	"strings"
 	"time"
 )
@@ -94,11 +95,9 @@ func (w *Word) updateState() {
 		return
 	}
 
-	for _, r := range w.typed {
-		if r == '\x00' {
-			w.state = Error
-			return
-		}
+	if slices.Contains(w.typed, '\x00') {
+		w.state = Error
+		return
 	}
 
 	minLen := min(len(w.typed), len(w.target))
