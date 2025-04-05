@@ -66,7 +66,6 @@ func (s *ZenQuotesSource) FetchText() (string, error) {
 	quote := result[0].Quote
 	author := result[0].Author
 
-	// Add period if the quote doesn't end with punctuation
 	if !strings.HasSuffix(quote, ".") && !strings.HasSuffix(quote, "!") && !strings.HasSuffix(quote, "?") {
 		quote += "."
 	}
@@ -76,37 +75,71 @@ func (s *ZenQuotesSource) FetchText() (string, error) {
 }
 
 func (s *ZenQuotesSource) FormatText(text string) string {
-	// Remove any special characters and normalize spaces
-	text = strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == ' ' {
-			return r
-		}
-		return ' '
-	}, text)
+	if CurrentSettings.GameMode == GameModeSimple {
+		var builder strings.Builder
+		builder.Grow(len(text))
 
-	// Normalize spaces
-	text = strings.Join(strings.Fields(text), " ")
-
-	// Format based on game mode
-	switch CurrentSettings.GameMode {
-	case GameModeSimple:
-		// For simple mode, convert to lowercase and remove punctuation
-		text = strings.ToLower(text)
-		words := strings.Fields(text)
-		if len(words) > 50 {
-			words = words[:50]
+		for _, r := range text {
+			if r >= 'A' && r <= 'Z' {
+				builder.WriteRune(r + 32) // Lowercase (faster than unicode functions)
+			} else if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == ' ' {
+				builder.WriteRune(r)
+			} else if r == '.' || r == ',' || r == ';' || r == ':' || r == '!' || r == '?' {
+			} else {
+				builder.WriteRune(' ')
+			}
 		}
-		text = strings.Join(words, " ")
-	case GameModeNormal:
-		// For normal mode, keep the text as is but ensure it's not too long
-		words := strings.Fields(text)
+
+		processed := builder.String()
+		words := strings.Fields(processed)
+
 		if len(words) > 100 {
 			words = words[:100]
 		}
-		text = strings.Join(words, " ")
+
+		var finalBuilder strings.Builder
+		finalBuilder.Grow(len(processed))
+
+		for i, word := range words {
+			finalBuilder.WriteString(word)
+			if i < len(words)-1 {
+				finalBuilder.WriteRune(' ')
+			}
+		}
+
+		return finalBuilder.String()
 	}
 
-	return text
+	var builder strings.Builder
+	builder.Grow(len(text))
+
+	for _, r := range text {
+		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') ||
+			r == ' ' || r == '.' || r == ',' || r == ';' || r == ':' || r == '!' || r == '?' {
+			builder.WriteRune(r)
+		} else {
+			builder.WriteRune(' ')
+		}
+	}
+
+	processed := builder.String()
+	words := strings.Fields(processed)
+
+	if len(words) > 100 {
+		words = words[:100]
+	}
+
+	var finalBuilder strings.Builder
+	finalBuilder.Grow(len(processed))
+
+	for i, word := range words {
+		finalBuilder.WriteString(word)
+		if i < len(words)-1 {
+			finalBuilder.WriteRune(' ')
+		}
+	}
+
+	return finalBuilder.String()
 }
 
 type BibleSource struct {
@@ -145,7 +178,6 @@ func (s *BibleSource) FetchText() (string, error) {
 		return "", fmt.Errorf("failed to parse bible verse: %w", err)
 	}
 
-	// Clean up the verse text (remove newlines and extra spaces)
 	verse := strings.TrimSpace(result.Text)
 	verse = strings.Join(strings.Fields(verse), " ")
 
@@ -154,46 +186,78 @@ func (s *BibleSource) FetchText() (string, error) {
 }
 
 func (s *BibleSource) FormatText(text string) string {
-	// Remove any special characters and normalize spaces
-	text = strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == ' ' {
-			return r
-		}
-		return ' '
-	}, text)
+	if CurrentSettings.GameMode == GameModeSimple {
+		var builder strings.Builder
+		builder.Grow(len(text))
 
-	// Normalize spaces
-	text = strings.Join(strings.Fields(text), " ")
-
-	// Format based on game mode
-	switch CurrentSettings.GameMode {
-	case GameModeSimple:
-		// For simple mode, convert to lowercase and remove punctuation
-		text = strings.ToLower(text)
-		words := strings.Fields(text)
-		if len(words) > 50 {
-			words = words[:50]
+		for _, r := range text {
+			if r >= 'A' && r <= 'Z' {
+				builder.WriteRune(r + 32)
+			} else if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == ' ' {
+				builder.WriteRune(r)
+			} else if r == '.' || r == ',' || r == ';' || r == ':' || r == '!' || r == '?' {
+			} else {
+				builder.WriteRune(' ')
+			}
 		}
-		text = strings.Join(words, " ")
-	case GameModeNormal:
-		// For normal mode, keep the text as is but ensure it's not too long
-		words := strings.Fields(text)
+
+		processed := builder.String()
+		words := strings.Fields(processed)
+
 		if len(words) > 100 {
 			words = words[:100]
 		}
-		text = strings.Join(words, " ")
+
+		var finalBuilder strings.Builder
+		finalBuilder.Grow(len(processed))
+
+		for i, word := range words {
+			finalBuilder.WriteString(word)
+			if i < len(words)-1 {
+				finalBuilder.WriteRune(' ')
+			}
+		}
+
+		return finalBuilder.String()
 	}
 
-	return text
+	var builder strings.Builder
+	builder.Grow(len(text))
+
+	for _, r := range text {
+		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') ||
+			r == ' ' || r == '.' || r == ',' || r == ';' || r == ':' || r == '!' || r == '?' {
+			builder.WriteRune(r)
+		} else {
+			builder.WriteRune(' ')
+		}
+	}
+
+	processed := builder.String()
+	words := strings.Fields(processed)
+
+	if len(words) > 100 {
+		words = words[:100]
+	}
+
+	var finalBuilder strings.Builder
+	finalBuilder.Grow(len(processed))
+
+	for i, word := range words {
+		finalBuilder.WriteString(word)
+		if i < len(words)-1 {
+			finalBuilder.WriteRune(' ')
+		}
+	}
+
+	return finalBuilder.String()
 }
 
-// GetRandomText fetches a random text passage based on the current settings
 func GetRandomText() string {
 	var source TextSource
 	var err error
 	var text string
 
-	// Try both sources until we get a successful response
 	for i := 0; i < 2; i++ {
 		switch i {
 		case 0:
@@ -212,7 +276,6 @@ func GetRandomText() string {
 		DebugLog("TextSource: Failed to fetch from source %d: %v", i, err)
 	}
 
-	// If all sources fail, return a default text
 	DebugLog("TextSource: All sources failed, using default text")
 	return "The quick brown fox jumps over the lazy dog."
 }

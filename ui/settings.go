@@ -8,22 +8,33 @@ import (
 )
 
 type UserSettings struct {
-	ThemeName  string `json:"theme"`
-	CursorType string `json:"cursor_type"`
-	GameMode   string `json:"game_mode"`
-	UseNumbers bool   `json:"use_numbers"`
+	ThemeName      string `json:"theme"`
+	CursorType     string `json:"cursor_type"`
+	GameMode       string `json:"game_mode"`
+	UseNumbers     bool   `json:"use_numbers"`
+	TextLength     string `json:"text_length"`
+	HasSeenWelcome bool   `json:"has_seen_welcome"`
+	RefreshRate    int    `json:"refresh_rate"` // NOTE:in frames per second not tick
 }
 
 const (
 	GameModeNormal = "normal"
 	GameModeSimple = "simple"
+
+	TextLengthShort    = "short"     // 1
+	TextLengthMedium   = "medium"    // 2
+	TextLengthLong     = "long"      // 3
+	TextLengthVeryLong = "very long" // 5
 )
 
 var DefaultSettings = UserSettings{
-	ThemeName:  "default",
-	CursorType: "block",
-	GameMode:   GameModeNormal,
-	UseNumbers: true,
+	ThemeName:      "default",
+	CursorType:     "block",
+	GameMode:       GameModeNormal,
+	UseNumbers:     true,
+	TextLength:     TextLengthShort,
+	HasSeenWelcome: false,
+	RefreshRate:    10,
 }
 
 var CurrentSettings UserSettings
@@ -53,7 +64,6 @@ func GetSettingsFilePath() (string, error) {
 }
 
 func LoadSettings() error {
-
 	CurrentSettings = DefaultSettings
 
 	settingsPath, err := GetSettingsFilePath()
@@ -64,7 +74,6 @@ func LoadSettings() error {
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-
 			return SaveSettings()
 		}
 		return fmt.Errorf("error reading settings file: %w", err)
@@ -114,13 +123,20 @@ func UpdateSettings(settings UserSettings) error {
 		CurrentSettings.UseNumbers = settings.UseNumbers
 	}
 
+	if settings.TextLength != "" {
+		CurrentSettings.TextLength = settings.TextLength
+	}
+
+	if settings.RefreshRate > 0 {
+		CurrentSettings.RefreshRate = settings.RefreshRate
+	}
+
 	ApplySettings()
 
 	return SaveSettings()
 }
 
 func ApplySettings() {
-
 	if CurrentSettings.ThemeName != "" {
 		LoadTheme(CurrentSettings.ThemeName)
 		UpdateStyles()

@@ -1,3 +1,5 @@
+// WARN:NOTES in this files are important!
+// otehrwise it'll re-render exponentially on type!
 package ui
 
 import (
@@ -21,18 +23,22 @@ type Word struct {
 	state  WordState
 	active bool
 	cursor *Cursor
+	cached string
+	dirty  bool
 }
 
 func NewWord(target []rune) *Word {
-	targetCopy := make([]rune, len(target))
+	targetLen := len(target)
+	targetCopy := make([]rune, targetLen)
 	copy(targetCopy, target)
 
 	return &Word{
 		target: targetCopy,
-		typed:  make([]rune, 0, len(target)),
+		typed:  make([]rune, 0, targetLen),
 		state:  Untyped,
 		active: false,
 		cursor: NewCursor(DefaultCursorType),
+		dirty:  true, // NOTE:start with dirty cache
 	}
 }
 
@@ -45,6 +51,7 @@ func (w *Word) Type(r rune) {
 			w.typed = []rune{r}
 			w.state = Error
 		}
+		w.dirty = true
 		return
 	}
 
@@ -55,20 +62,30 @@ func (w *Word) Type(r rune) {
 	}
 
 	w.updateState()
+	w.dirty = true
 }
 
 func (w *Word) Skip() {
-	if len(w.typed) == 0 {
-		for i := 0; i < len(w.target); i++ {
-			w.typed = append(w.typed, '\x00')
+	targetLen := len(w.target)
+	typedLen := len(w.typed)
+
+	if typedLen == 0 {
+		// NOTE:optimize by pre-allocating the full array
+		w.typed = make([]rune, targetLen)
+		for i := 0; i < targetLen; i++ {
+			w.typed[i] = '\x00'
 		}
-	} else {
-		currentLen := len(w.typed)
-		for i := currentLen; i < len(w.target); i++ {
-			w.typed = append(w.typed, '\x00')
+	} else if typedLen < targetLen {
+		// NOTE:optimize by growing the slice once
+		needed := targetLen - typedLen
+		w.typed = append(w.typed, make([]rune, needed)...)
+		for i := typedLen; i < targetLen; i++ {
+			w.typed[i] = '\x00'
 		}
 	}
+
 	w.state = Error
+	w.dirty = true
 }
 
 func (w *Word) Backspace() bool {
@@ -77,6 +94,7 @@ func (w *Word) Backspace() bool {
 	}
 	w.typed = w.typed[:len(w.typed)-1]
 	w.updateState()
+	w.dirty = true
 	return true
 }
 
@@ -134,28 +152,49 @@ func (w *Word) IsSpace() bool {
 }
 
 func (w *Word) SetActive(active bool) {
-	w.active = active
+	if w.active != active {
+		w.active = active
+		w.dirty = true
+	}
 }
 
 func (w *Word) SetCursorType(cursorType CursorType) {
 	w.cursor = NewCursor(cursorType)
+	w.dirty = true
 }
 
 func (w *Word) Render(showCursor bool) string {
+	//.
+	//NOTE: If word is active, always render fresh
+	// NOTE:If word is not active and not dirty, return cached result
+	//.
+
+	if !w.active && !w.dirty && w.cached != "" {
+		return w.cached
+	}
+
 	startTime := time.Now()
 
 	var result strings.Builder
 
+	// NOTE:estimate buffer size to avoid reallocations
+	// NOTE:allow extra space for style sequences
+
+	result.Grow(max(len(w.target), len(w.typed)) * 3)
 	if w.IsSpace() {
 		if len(w.typed) == 0 {
 			if showCursor && w.active {
-				return w.cursor.Render(' ')
+				w.cached = w.cursor.Render(' ')
+				return w.cached
 			}
-			return DimStyle.Render(" ")
+			w.cached = DimStyle.Render(" ")
+			return w.cached
 		} else if len(w.typed) == 1 && w.typed[0] == ' ' {
-			return InputStyle.Render(" ")
+			w.cached = InputStyle.Render(" ")
+			return w.cached
 		} else {
-			return ErrorStyle.Render(string(w.typed[0]))
+			w.cached = ErrorStyle.Render(string(w.typed[0]))
+			return w.cached
 		}
 	}
 
@@ -199,6 +238,11 @@ func (w *Word) Render(showCursor bool) string {
 	}
 
 	rendered := result.String()
+
+	if !w.active {
+		w.cached = rendered
+		w.dirty = false
+	}
 
 	if w.active {
 		renderTime := time.Since(startTime)

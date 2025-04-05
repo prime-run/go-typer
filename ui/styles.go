@@ -11,12 +11,18 @@ const (
 
 // WARN:switched to true color might comeback to bite later in testing for other termnal emulators!
 
-// TODO:a theming system would be nice
+// TODO:a theming system would be nice [x]
 
 func UpdateStyles() {
 
 	helpStyle := lipgloss.NewStyle().Foreground(GetColor("help_text"))
 	HelpStyle = helpStyle.Render
+
+	hintStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview")).Italic(true)
+	HintStyle = hintStyle.Render
+
+	settingsStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	SettingsStyle = settingsStyle.Render
 
 	TextToTypeStyle = lipgloss.NewStyle().Foreground(GetColor("text_preview")).Padding(1).Width(MaxWidth)
 	InputStyle = lipgloss.NewStyle().Foreground(GetColor("text_correct"))
@@ -51,7 +57,6 @@ func UpdateStyles() {
 		Foreground(GetColor("cursor_underline")).
 		Underline(true)
 
-	// Endgame screen styles
 	EndGameTitleStyle = lipgloss.NewStyle().
 		Foreground(GetColor("text_correct")).
 		Bold(true).
@@ -90,6 +95,8 @@ func UpdateStyles() {
 }
 
 var HelpStyle func(...string) string
+var HintStyle func(...string) string
+var SettingsStyle func(...string) string
 var TextToTypeStyle lipgloss.Style
 var InputStyle lipgloss.Style
 var ErrorStyle lipgloss.Style
@@ -103,7 +110,8 @@ var TextContainerStyle lipgloss.Style
 var BlockCursorStyle lipgloss.Style
 var UnderlineCursorStyle lipgloss.Style
 
-// Endgame screen styles
+// endgame screen styles
+// .
 var EndGameTitleStyle lipgloss.Style
 var EndGameStatsBoxStyle lipgloss.Style
 var EndGameWpmStyle lipgloss.Style
@@ -130,7 +138,6 @@ func init() {
 
 	UpdateStyles()
 }
-
 func GetSampleText() string {
 	if CurrentSettings.GameMode == GameModeSimple {
 		if CurrentSettings.UseNumbers {

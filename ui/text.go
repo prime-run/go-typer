@@ -10,17 +10,20 @@ type Text struct {
 	cursorPos  int
 	showCursor bool
 	cursorType CursorType
+	sourceText string
 }
 
 func NewText(text string) *Text {
-	words := make([]*Word, 0)
+
+	estimatedWordCount := len(text)/6 + 1
+	words := make([]*Word, 0, estimatedWordCount)
 	var currentWord []rune
 
 	for _, r := range text {
 		if r == ' ' {
 			if len(currentWord) > 0 {
 				words = append(words, NewWord(currentWord))
-				currentWord = make([]rune, 0)
+				currentWord = make([]rune, 0, 8)
 			}
 			words = append(words, NewWord([]rune{' '}))
 		} else {
@@ -37,6 +40,7 @@ func NewText(text string) *Text {
 		cursorPos:  0,
 		showCursor: true,
 		cursorType: UnderlineCursor,
+		sourceText: text,
 	}
 
 	if len(t.words) > 0 {
@@ -139,7 +143,13 @@ func (t *Text) Render() string {
 	startTime := time.Now()
 	DebugLog("Text: Render started")
 
+	estimatedSize := 0
+	for _, word := range t.words {
+		estimatedSize += len(word.target) * 3
+	}
+
 	var result strings.Builder
+	result.Grow(estimatedSize)
 
 	showCursor := t.showCursor
 	if t.cursorType == UnderlineCursor {
@@ -198,15 +208,20 @@ func (t *Text) Stats() (total, correct, errors int) {
 	return
 }
 
-// GetText returns the original text content
 func (t *Text) GetText() string {
-	var words []string
+	if t.sourceText != "" {
+		return t.sourceText
+	}
+
+	var builder strings.Builder
+	builder.Grow(len(t.words) * 8)
+
 	for _, word := range t.words {
 		if !word.IsSpace() {
-			words = append(words, string(word.target))
+			builder.WriteString(string(word.target))
 		} else {
-			words = append(words, " ")
+			builder.WriteRune(' ')
 		}
 	}
-	return strings.Join(words, "")
+	return builder.String()
 }

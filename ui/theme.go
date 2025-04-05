@@ -55,11 +55,7 @@ var DefaultTheme = ThemeColors{
 var CurrentTheme ThemeColors
 
 func GetThemePath(themeName string) string {
-
-	if strings.HasPrefix(themeName, "-") {
-
-		themeName = strings.TrimPrefix(themeName, "-")
-	}
+	themeName = strings.TrimPrefix(themeName, "-")
 
 	if strings.HasSuffix(themeName, ".yml") {
 		return themeName

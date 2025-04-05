@@ -2,24 +2,24 @@ package ui
 
 import (
 	"fmt"
-	"strings"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"strings"
+	"time"
 )
 
 const logoArt = `
-   ________    _________                     
-  / ____/ /   / ____/   |  ____  ___  _____  
- / / __/ /   / __/ / /| | / __ \/ _ \/ ___/  
-/ /_/ / /___/ /___/ ___ |/ /_/ /  __/ /      
-\____/_____/_____/_/  |_/ .___/\___/_/       
-                       /_/                    
- _______  ____________  ____    __            
-/_  __\ \/ /  _/ __ \ \/ / /   / /            
- / /   \  // // /_/ /\  / /   / /             
-/ /    / // // ____/ / / /___/ /___           
-\____/_/___/_/_/     \/_____/_____/           
+   █████████     ███████       ███████████                                        
+  ███░░░░░███  ███░░░░░███    ░█░░░███░░░█                                        
+ ███     ░░░  ███     ░░███   ░   ░███  ░  █████ ████ ████████   ██████  ████████ 
+░███         ░███      ░███       ░███    ░░███ ░███ ░░███░░███ ███░░███░░███░░███
+░███    █████░███      ░███       ░███     ░███ ░███  ░███ ░███░███████  ░███ ░░░ 
+░░███  ░░███ ░░███     ███        ░███     ░███ ░███  ░███ ░███░███░░░   ░███     
+ ░░█████████  ░░░███████░         █████    ░░███████  ░███████ ░░██████  █████    
+  ░░░░░░░░░     ░░░░░░░          ░░░░░      ░░░░░███  ░███░░░   ░░░░░░  ░░░░░     
+                                            ███ ░███  ░███                        
+                                           ░░██████   █████                       
+                                            ░░░░░░   ░░░░░                        
 `
 
 const (
@@ -35,12 +35,12 @@ type menuItem struct {
 }
 
 type StartScreenModel struct {
+	width           int
+	height          int
 	menuState       int
 	selectedItem    int
 	mainMenuItems   []menuItem
 	settingsItems   []menuItem
-	width           int
-	height          int
 	cursorType      string
 	selectedTheme   string
 	initialTheme    string
@@ -48,6 +48,10 @@ type StartScreenModel struct {
 	themeChanged    bool
 	gameMode        string
 	useNumbers      bool
+	textLength      string
+	refreshRate     int
+	startTime       time.Time
+	lastTick        time.Time
 }
 
 func NewStartScreenModel() *StartScreenModel {
@@ -63,6 +67,10 @@ func NewStartScreenModel() *StartScreenModel {
 		themeChanged:    false,
 		gameMode:        CurrentSettings.GameMode,
 		useNumbers:      CurrentSettings.UseNumbers,
+		textLength:      CurrentSettings.TextLength,
+		refreshRate:     CurrentSettings.RefreshRate,
+		startTime:       time.Now(),
+		lastTick:        time.Now(),
 	}
 
 	model.mainMenuItems = []menuItem{
@@ -78,6 +86,8 @@ func NewStartScreenModel() *StartScreenModel {
 		{title: "Cursor Style", action: cycleCursor},
 		{title: "Game Mode", action: cycleGameMode},
 		{title: "Use Numbers", action: toggleNumbers},
+		{title: "Text Length", action: cycleTextLength},
+		{title: "Refresh Rate", action: cycleRefreshRate},
 		{title: "Back", action: saveAndGoBack},
 	}
 
@@ -94,11 +104,16 @@ func NewStartScreenModel() *StartScreenModel {
 }
 
 func (m *StartScreenModel) Init() tea.Cmd {
-	return nil
+	return InitGlobalTick()
 }
 
 func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case GlobalTickMsg:
+		var cmd tea.Cmd
+		m.lastTick, _, cmd = HandleGlobalTick(m.lastTick, msg)
+		return m, cmd
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -189,6 +204,7 @@ func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		return m, nil
 	}
 
 	return m, nil
@@ -197,21 +213,17 @@ func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *StartScreenModel) View() string {
 	var menuContent string
 
-	logoStyle := lipgloss.NewStyle().
-		Foreground(GetColor("border")).
-		Bold(true)
-
-	logo := logoStyle.Render(logoArt)
-
 	if m.menuState == MenuMain {
-		menuContent = m.renderMainMenu()
+		menuContent = fmt.Sprintf("%s\n%s",
+			renderAnimatedAscii(logoArt, m.lastTick),
+			m.renderMainMenu())
 	} else if m.menuState == MenuSettings {
 		menuContent = m.renderSettingsMenu()
 	}
 
 	footer := "\n" + HelpStyle("↑/↓: Navigate • Enter: Select • Esc: Back • q: Quit")
 
-	content := fmt.Sprintf("%s\n%s\n%s", logo, menuContent, footer)
+	content := fmt.Sprintf("%s\n%s", menuContent, footer)
 
 	if m.width > 0 && m.height > 0 {
 		return lipgloss.Place(m.width, m.height,
@@ -277,6 +289,23 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 	sb.WriteString(titleStyle.Render("Settings"))
 	sb.WriteString("\n\n")
 
+	var exampleContent string
+
+	if m.selectedItem == 0 {
+		exampleContent = renderThemeExample(m.selectedTheme)
+	} else if m.selectedItem == 1 {
+		exampleContent = renderCursorExample(m.cursorType)
+	} else if m.selectedItem == 2 {
+		exampleContent = renderGameModeExample(m.gameMode)
+	} else if m.selectedItem == 3 {
+		exampleContent = renderUseNumbersExample(m.useNumbers)
+	} else if m.selectedItem == 4 {
+		exampleContent = renderTextLengthExample(m.textLength)
+	} else if m.selectedItem == 5 {
+		exampleContent = renderRefreshRateExample(m.refreshRate, m.lastTick)
+	}
+
+	var settingsList []string
 	for i, item := range m.settingsItems {
 		var s lipgloss.Style
 
@@ -302,135 +331,276 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 			menuText = fmt.Sprintf("%-15s: %s", item.title, m.gameMode)
 		} else if i == 3 {
 			menuText = fmt.Sprintf("%-15s: %v", item.title, m.useNumbers)
+		} else if i == 4 {
+			menuText = fmt.Sprintf("%-15s: %s", item.title, m.textLength)
+		} else if i == 5 {
+			menuText = fmt.Sprintf("%-15s: %d FPS", item.title, m.refreshRate)
 		}
 
-		sb.WriteString(s.Render(menuText))
-		sb.WriteString("\n")
+		settingsList = append(settingsList, s.Render(menuText))
+	}
 
-		if i == m.selectedItem {
-			sb.WriteString("\n")
-
-			if i == 0 {
-				exampleBox := renderThemeExample(m.selectedTheme)
-				sb.WriteString(exampleBox)
-			} else if i == 1 {
-				exampleBox := renderCursorExample(m.cursorType)
-				sb.WriteString(exampleBox)
-			} else if i == 2 {
-				exampleBox := renderGameModeExample(m.gameMode)
-				sb.WriteString(exampleBox)
-			} else if i == 3 {
-				exampleBox := renderUseNumbersExample(m.useNumbers)
-				sb.WriteString(exampleBox)
-			}
-
-			sb.WriteString("\n")
+	var exampleBox string
+	if m.selectedItem < len(m.settingsItems) {
+		switch m.selectedItem {
+		case 0:
+			exampleBox = exampleContent
+		case 1:
+			exampleBox = renderCursorExample(m.cursorType)
+		case 2:
+			exampleBox = renderGameModeExample(m.gameMode)
+		case 3:
+			exampleBox = renderUseNumbersExample(m.useNumbers)
+		case 4:
+			exampleBox = renderTextLengthExample(m.textLength)
+		case 5:
+			exampleBox = renderRefreshRateExample(m.refreshRate, m.lastTick)
 		}
+	}
 
-		sb.WriteString("\n")
+	leftWidth := 30
+	rightWidth := m.width - leftWidth - 4
+
+	exampleStyle := lipgloss.NewStyle().
+		Padding(1, 2).
+		Width(rightWidth)
+
+	// create columns
+	leftColumn := lipgloss.NewStyle().
+		Width(leftWidth).
+		Render(lipgloss.JoinVertical(lipgloss.Left, settingsList...))
+
+	rightColumn := exampleStyle.Render(exampleBox)
+
+	// join them
+	content := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		leftColumn,
+		"  ",
+		rightColumn,
+	)
+
+	sb.WriteString(content)
+	sb.WriteString("\n\n")
+
+	return sb.String()
+}
+
+func renderThemeExample(theme string) string {
+	var sb strings.Builder
+
+	colorOrder := []string{
+		"Help Text",
+		"Timer",
+		"Border",
+		"Text Dim",
+		"Text Preview",
+		"Text Correct",
+		"Text Error",
+		"Text Partial",
+		"Cursor FG",
+		"Cursor BG",
+		"Cursor Under",
+		"Padding",
+	}
+
+	for _, name := range colorOrder {
+		color := GetColor(strings.ToLower(strings.ReplaceAll(name, " ", "_")))
+		style := lipgloss.NewStyle().
+			Foreground(color).
+			Padding(0, 1)
+
+		colorBox := lipgloss.NewStyle().
+			Background(color).
+			Padding(0, 2).
+			Render("  ")
+
+		sb.WriteString(fmt.Sprintf("%-15s %s %s\n", name, colorBox, style.Render(string(color))))
 	}
 
 	return sb.String()
 }
 
-func renderThemeExample(themeName string) string {
-	exampleStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(GetColor("border")).
-		Padding(1, 2).
-		Margin(0, 0, 0, 4)
-
+func renderCursorExample(cursorType string) string {
 	var example strings.Builder
 
-	example.WriteString("Text Preview: ")
-	example.WriteString(DimStyle.Render("dim "))
-	example.WriteString(InputStyle.Render("correct "))
-	example.WriteString(ErrorStyle.Render("error"))
+	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	example.WriteString(titleStyle.Render("Cursor Style: "))
+
+	cursorTypeStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
+	example.WriteString(cursorTypeStyle.Render(cursorType))
 	example.WriteString("\n\n")
 
-	example.WriteString("Word with errors: ")
-	example.WriteString(InputStyle.Render("co"))
-	example.WriteString(ErrorStyle.Render("d"))
-	example.WriteString(PartialErrorStyle.Render("e"))
-	example.WriteString(DimStyle.Render("r"))
+	example.WriteString(titleStyle.Render("Example Text:\n"))
 
-	return exampleStyle.Render(example.String())
-}
+	dimStyle := lipgloss.NewStyle().Foreground(GetColor("text_dim"))
+	example.WriteString(dimStyle.Render("quick "))
 
-func renderCursorExample(cursorType string) string {
-	exampleStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(GetColor("border")).
-		Padding(1, 2).
-		Margin(0, 0, 0, 4)
-
-	var example strings.Builder
-
-	var cursor *Cursor
+	example.WriteString(dimStyle.Render("b"))
 	if cursorType == "block" {
-		cursor = NewCursor(BlockCursor)
+		cursorStyle := lipgloss.NewStyle().
+			Foreground(GetColor("cursor_fg")).
+			Background(GetColor("cursor_bg"))
+		example.WriteString(cursorStyle.Render("r"))
 	} else {
-		cursor = NewCursor(UnderlineCursor)
+		cursorStyle := lipgloss.NewStyle().
+			Foreground(GetColor("cursor_underline")).
+			Underline(true)
+		example.WriteString(cursorStyle.Render("r"))
 	}
+	example.WriteString(dimStyle.Render("own"))
 
-	example.WriteString("Cursor appearance: ")
-	example.WriteString(cursor.Render('A'))
-	example.WriteString(InputStyle.Render("BC"))
-
-	return exampleStyle.Render(example.String())
+	return example.String()
 }
 
 func renderGameModeExample(gameMode string) string {
-	exampleStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(GetColor("border")).
-		Padding(1, 2).
-		Margin(0, 0, 0, 4)
-
 	var example strings.Builder
 
-	example.WriteString("Game Mode: ")
+	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	example.WriteString(titleStyle.Render("Game Mode: "))
+
+	modeStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
+	if gameMode == "normal" {
+		example.WriteString(modeStyle.Render("Normal (With Punctuation)"))
+	} else {
+		example.WriteString(modeStyle.Render("Simple (No Punctuation)"))
+	}
+	example.WriteString("\n\n")
+
+	example.WriteString(titleStyle.Render("Example:\n"))
 
 	if gameMode == "normal" {
-		example.WriteString("Normal (With Punctuation)")
-		example.WriteString("\n\n")
-		example.WriteString("Example: ")
 		example.WriteString(TextToTypeStyle.Render("The quick brown fox jumps."))
 	} else {
-		example.WriteString("Simple (No Punctuation)")
-		example.WriteString("\n\n")
-		example.WriteString("Example: ")
 		example.WriteString(TextToTypeStyle.Render("the quick brown fox jumps"))
 	}
 
-	return exampleStyle.Render(example.String())
+	return example.String()
 }
 
-// NOTE: render a use numbers example
 func renderUseNumbersExample(useNumbers bool) string {
-	exampleStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(GetColor("border")).
-		Padding(1, 2).
-		Margin(0, 0, 0, 4)
-
 	var example strings.Builder
 
-	example.WriteString("Use Numbers: ")
+	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	example.WriteString(titleStyle.Render("Use Numbers: "))
+
+	valueStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
+	if useNumbers {
+		example.WriteString(valueStyle.Render("Yes"))
+	} else {
+		example.WriteString(valueStyle.Render("No"))
+	}
+	example.WriteString("\n\n")
+
+	example.WriteString(titleStyle.Render("Example:\n"))
 
 	if useNumbers {
-		example.WriteString("Yes")
-		example.WriteString("\n\n")
-		example.WriteString("Example: ")
 		example.WriteString(TextToTypeStyle.Render("quick brown fox jumps over 5 lazy dogs"))
 	} else {
-		example.WriteString("No")
-		example.WriteString("\n\n")
-		example.WriteString("Example: ")
 		example.WriteString(TextToTypeStyle.Render("quick brown fox jumps over lazy dogs"))
 	}
 
-	return exampleStyle.Render(example.String())
+	return example.String()
+}
+
+func renderTextLengthExample(length string) string {
+	var example strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	example.WriteString(titleStyle.Render("Text Length: "))
+
+	valueStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
+	example.WriteString(valueStyle.Render(length))
+	example.WriteString("\n\n")
+
+	example.WriteString(titleStyle.Render("Quotes to fetch:\n"))
+
+	textCount := map[string]int{
+		TextLengthShort:    1,
+		TextLengthMedium:   2,
+		TextLengthLong:     3,
+		TextLengthVeryLong: 5,
+	}
+
+	count := textCount[length]
+	example.WriteString(fmt.Sprintf("\nWill fetch and combine %d quote(s)", count))
+	example.WriteString("\nEstimated word count: ")
+
+	wordCount := count * 30
+	example.WriteString(valueStyle.Render(fmt.Sprintf("%d words", wordCount)))
+
+	return example.String()
+}
+
+func renderRefreshRateExample(rate int, tickTime time.Time) string {
+	var sb strings.Builder
+
+	titleStyle := lipgloss.NewStyle().
+		Foreground(GetColor("timer")).
+		Bold(true)
+
+	sb.WriteString(titleStyle.Render("Refresh Rate: "))
+
+	valueStyle := lipgloss.NewStyle().
+		Foreground(GetColor("text_preview"))
+	sb.WriteString(valueStyle.Render(fmt.Sprintf("%d FPS", rate)))
+	sb.WriteString("\n\n")
+
+	descStyle := lipgloss.NewStyle().
+		Foreground(GetColor("text_dim"))
+
+	sb.WriteString(descStyle.Render(
+		fmt.Sprintf("Updates %d times per second (%.1f ms per frame)",
+			rate, 1000.0/float64(rate))))
+	sb.WriteString("\n\n")
+
+	helpStyle := lipgloss.NewStyle().
+		Foreground(GetColor("help_text"))
+
+	sb.WriteString(helpStyle.Render(
+		"Higher values give smoother animations\n" +
+			"Lower values use less CPU/battery"))
+	sb.WriteString("\n\n")
+
+	var spinner string
+	frames := []string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"}
+	index := int(tickTime.UnixNano()/int64(time.Second/time.Duration(rate))) % len(frames)
+	spinner = frames[index]
+
+	spinnerStyle := lipgloss.NewStyle().
+		Foreground(GetColor("text_correct"))
+
+	sb.WriteString(spinnerStyle.Render(spinner + " "))
+	sb.WriteString(valueStyle.Render(fmt.Sprintf("Animation at %d FPS", rate)))
+
+	return sb.String()
+}
+
+func renderAnimatedAscii(logoArt string, tickTime time.Time) string {
+	var result strings.Builder
+	colors := []string{
+		"#87CEEB", // Sky blue
+		"#4682B4", // Steel blue
+		"#1E90FF", // Dodger blue
+		"#0000CD", // Medium blue
+		"#000080", // Navy blue
+	}
+
+	startIndex := int(tickTime.UnixNano()/int64(100*time.Millisecond)) % len(colors)
+
+	lines := strings.Split(logoArt, "\n")
+	for i, line := range lines {
+		if line == "" {
+			result.WriteString("\n")
+			continue
+		}
+		colorIndex := (startIndex + i) % len(colors)
+		style := lipgloss.NewStyle().Foreground(lipgloss.Color(colors[colorIndex]))
+		result.WriteString(style.Render(line))
+		result.WriteString("\n")
+	}
+
+	return result.String()
 }
 
 func startGame(m *StartScreenModel) tea.Cmd {
@@ -455,18 +625,30 @@ func quitGame(m *StartScreenModel) tea.Cmd {
 }
 
 func saveAndGoBack(m *StartScreenModel) tea.Cmd {
-	m.initialTheme = m.selectedTheme
-	m.themeChanged = false
+	settings := UserSettings{
+		ThemeName:      m.selectedTheme,
+		CursorType:     m.cursorType,
+		GameMode:       m.gameMode,
+		UseNumbers:     m.useNumbers,
+		TextLength:     m.textLength,
+		RefreshRate:    m.refreshRate,
+		HasSeenWelcome: CurrentSettings.HasSeenWelcome,
+	}
 
-	UpdateSettings(UserSettings{
-		ThemeName:  m.selectedTheme,
-		CursorType: m.cursorType,
-		GameMode:   m.gameMode,
-		UseNumbers: m.useNumbers,
-	})
+	if err := UpdateSettings(settings); err != nil {
+		DebugLog("Settings: Error updating settings: %v", err)
+	}
 
 	m.menuState = MenuMain
 	m.selectedItem = 0
+
+	for m.mainMenuItems[m.selectedItem].disabled {
+		m.selectedItem++
+		if m.selectedItem >= len(m.mainMenuItems) {
+			m.selectedItem = 0
+		}
+	}
+
 	return nil
 }
 
@@ -514,26 +696,65 @@ func toggleNumbers(m *StartScreenModel) tea.Cmd {
 	return nil
 }
 
+func cycleTextLength(m *StartScreenModel) tea.Cmd {
+	lengths := []string{TextLengthShort, TextLengthMedium, TextLengthLong, TextLengthVeryLong}
+	var currentIndex int
+
+	for i, length := range lengths {
+		if length == m.textLength {
+			currentIndex = i
+			break
+		}
+	}
+
+	currentIndex = (currentIndex + 1) % len(lengths)
+	m.textLength = lengths[currentIndex]
+
+	return nil
+}
+
+func cycleRefreshRate(m *StartScreenModel) tea.Cmd {
+	rates := []int{1, 5, 10, 15, 30, 60}
+
+	currentIndex := -1
+	for i, r := range rates {
+		if r == m.refreshRate {
+			currentIndex = i
+			break
+		}
+	}
+
+	currentIndex = (currentIndex + 1) % len(rates)
+	m.refreshRate = rates[currentIndex]
+
+	return nil
+}
+
 type StartGameMsg struct {
 	cursorType string
 	theme      string
 }
 
 func RunStartScreen() {
+	ShowWelcomeScreen()
+
 	p := tea.NewProgram(NewStartScreenModel(), tea.WithAltScreen())
 
 	model, err := p.Run()
 	if err != nil {
-		fmt.Println("Error running start screen:", err)
+		fmt.Printf("Error running start screen: %v\n", err)
 		return
 	}
 
 	if m, ok := model.(*StartScreenModel); ok {
 		UpdateSettings(UserSettings{
-			ThemeName:  m.selectedTheme,
-			CursorType: m.cursorType,
-			GameMode:   m.gameMode,
-			UseNumbers: m.useNumbers,
+			ThemeName:      m.selectedTheme,
+			CursorType:     m.cursorType,
+			GameMode:       m.gameMode,
+			UseNumbers:     m.useNumbers,
+			TextLength:     m.textLength,
+			RefreshRate:    m.refreshRate,
+			HasSeenWelcome: CurrentSettings.HasSeenWelcome,
 		})
 
 		if m.menuState == MenuMain && m.selectedItem < len(m.mainMenuItems) {

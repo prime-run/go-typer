@@ -2,120 +2,156 @@ package ui
 
 import (
 	"fmt"
-	"os"
-	"strings"
-	"time"
-
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
+	"os"
+	"strings"
+	"time"
 )
 
-type tickMsg time.Time
 type textFetchedMsg string
 
 type LoadingModel struct {
-	progress progress.Model
-	done     bool
-	width    int
-	height   int
-	text     string
+	spinner     *Spinner
+	width       int
+	height      int
+	progress    float64
+	text        string
+	lastTick    time.Time
+	progressBar progress.Model
 }
 
-func NewLoadingModel() LoadingModel {
-	return LoadingModel{
-		progress: progress.New(progress.WithDefaultGradient()),
-		done:     false,
+func NewLoadingModel() *LoadingModel {
+	p := progress.New(
+		progress.WithDefaultGradient(),
+		progress.WithWidth(60),
+		progress.WithoutPercentage(),
+	)
+
+	return &LoadingModel{
+		spinner:     NewSpinner(),
+		progress:    0.0,
+		lastTick:    time.Now(),
+		progressBar: p,
 	}
 }
 
-func (m LoadingModel) Init() tea.Cmd {
+func (m *LoadingModel) Init() tea.Cmd {
 	return tea.Batch(
-		tickCmd(),
+		InitGlobalTick(),
 		fetchTextCmd(),
 	)
 }
 
-func (m LoadingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *LoadingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		return m, tea.Quit
-
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.progress.Width = msg.Width - Padding*2 - 4
-		if m.progress.Width > MaxWidth {
-			m.progress.Width = MaxWidth
+	case GlobalTickMsg:
+		m.spinner.Update()
+		m.progress += 0.03
+		if m.progress > 1.0 {
+			m.progress = 0.1
 		}
-		return m, nil
 
-	case tickMsg:
-		if m.done {
-			return m, nil
-		}
-		cmd := m.progress.IncrPercent(0.1)
-		return m, tea.Batch(tickCmd(), cmd)
+		var cmd tea.Cmd
+		m.lastTick, _, cmd = HandleGlobalTick(m.lastTick, msg)
+		return m, cmd
 
 	case textFetchedMsg:
-		m.done = true
 		m.text = string(msg)
 		DebugLog("Loading: Fetched text: %s", m.text)
 		return StartTypingGame(m.width, m.height, m.text), nil
 
-	case progress.FrameMsg:
-		progressModel, cmd := m.progress.Update(msg)
-		m.progress = progressModel.(progress.Model)
-		return m, cmd
-
-	case StartGameMsg:
-		selectedCursorType := BlockCursor
-		if msg.cursorType == "underline" {
-			selectedCursorType = UnderlineCursor
-		}
-		DefaultCursorType = selectedCursorType
-
-		if msg.theme != "" {
-			if err := LoadTheme(msg.theme); err == nil {
-				UpdateStyles()
-			}
-		}
-
-		return m, nil
-
-	default:
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 		return m, nil
 	}
+
+	return m, nil
 }
 
-func (m LoadingModel) View() string {
-	pad := strings.Repeat(" ", Padding)
+func (m *LoadingModel) View() string {
+	spinnerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00ADD8"))
 
-	content := "\n" +
-		pad + "Loading text..." + "\n\n" +
-		pad + m.progress.View() + "\n\n" +
-		pad + HelpStyle("Fetching text from server...")
+	pad := strings.Repeat(" ", 25)
 
-	if m.width > 0 {
-		return lipgloss.Place(m.width, m.height,
-			lipgloss.Center, lipgloss.Center,
-			content)
+	progressBar := m.progressBar.ViewAs(m.progress)
+
+	spinnerDisplay := spinnerStyle.Render(m.spinner.View())
+
+	content := lipgloss.NewStyle().
+		Width(m.width * 3 / 4).
+		Align(lipgloss.Center).
+		Render(
+			"\n\n" +
+				pad + spinnerDisplay + "\n\n" +
+				pad + "Loading text..." + "\n\n" +
+				pad + progressBar + "\n\n" +
+				pad + HelpStyle("Fetching text from server..."))
+
+	return lipgloss.Place(m.width, m.height,
+		lipgloss.Center, lipgloss.Center,
+		content)
+}
+
+func renderProgressBar(progress float64, width int) string {
+	if progress < 0 {
+		progress = 0
+	} else if progress > 1 {
+		progress = 1
 	}
 
-	return content
-}
+	filled := int(progress * float64(width))
+	if filled > width {
+		filled = width
+	}
 
-func tickCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
-		return tickMsg(t)
-	})
+	bar := "["
+	for i := 0; i < width; i++ {
+		if i < filled {
+			bar += "="
+		} else {
+			bar += " "
+		}
+	}
+	bar += "]"
+
+	return bar
 }
 
 func fetchTextCmd() tea.Cmd {
 	return func() tea.Msg {
-		text := GetRandomText()
-		return textFetchedMsg(text)
+		textCount := map[string]int{
+			TextLengthShort:    1,
+			TextLengthMedium:   2,
+			TextLengthLong:     3,
+			TextLengthVeryLong: 5,
+		}
+
+		count := textCount[CurrentSettings.TextLength]
+
+		texts := make([]string, 0, count)
+
+		estimatedTotalLen := count * 200
+
+		for i := 0; i < count; i++ {
+			text := GetRandomText()
+			texts = append(texts, text)
+		}
+
+		var finalTextBuilder strings.Builder
+		finalTextBuilder.Grow(estimatedTotalLen + count)
+
+		for i, text := range texts {
+			finalTextBuilder.WriteString(text)
+			if i < len(texts)-1 {
+				finalTextBuilder.WriteRune(' ')
+			}
+		}
+
+		return textFetchedMsg(finalTextBuilder.String())
 	}
 }
 
