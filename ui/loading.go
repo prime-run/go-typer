@@ -116,8 +116,24 @@ func tickCmd() tea.Cmd {
 
 func fetchTextCmd() tea.Cmd {
 	return func() tea.Msg {
-		text := GetRandomText()
-		return textFetchedMsg(text)
+		textCount := map[string]int{
+			TextLengthShort:    1,
+			TextLengthMedium:   2,
+			TextLengthLong:     3,
+			TextLengthVeryLong: 5,
+		}
+
+		count := textCount[CurrentSettings.TextLength]
+		var texts []string
+
+		for i := 0; i < count; i++ {
+			text := GetRandomText()
+			texts = append(texts, text)
+		}
+
+		// Join all texts with a space
+		finalText := strings.Join(texts, " ")
+		return textFetchedMsg(finalText)
 	}
 }
 

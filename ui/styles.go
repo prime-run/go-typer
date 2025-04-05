@@ -18,6 +18,12 @@ func UpdateStyles() {
 	helpStyle := lipgloss.NewStyle().Foreground(GetColor("help_text"))
 	HelpStyle = helpStyle.Render
 
+	hintStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview")).Italic(true)
+	HintStyle = hintStyle.Render
+
+	settingsStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	SettingsStyle = settingsStyle.Render
+
 	TextToTypeStyle = lipgloss.NewStyle().Foreground(GetColor("text_preview")).Padding(1).Width(MaxWidth)
 	InputStyle = lipgloss.NewStyle().Foreground(GetColor("text_correct"))
 	ErrorStyle = lipgloss.NewStyle().Foreground(GetColor("text_error"))
@@ -90,6 +96,8 @@ func UpdateStyles() {
 }
 
 var HelpStyle func(...string) string
+var HintStyle func(...string) string
+var SettingsStyle func(...string) string
 var TextToTypeStyle lipgloss.Style
 var InputStyle lipgloss.Style
 var ErrorStyle lipgloss.Style

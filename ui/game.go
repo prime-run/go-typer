@@ -7,6 +7,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type gameTickMsg time.Time
@@ -100,10 +102,8 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyTab:
-			// Fetch a new text for the next game
-			newText := GetRandomText()
-			DebugLog("Game: Fetched new text for restart: %s", newText)
-			return NewTypingModel(m.width, m.height, newText), gameTickCommand()
+			// Restart with the same text
+			return NewTypingModel(m.width, m.height, m.text.GetText()), gameTickCommand()
 		case tea.KeyBackspace:
 			m.text.Backspace()
 			return m, nil
@@ -133,7 +133,6 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // handleGameCompletion handles the game completion logic and returns the end game model
 func (m TypingModel) handleGameCompletion() (tea.Model, tea.Cmd) {
-	m.gameComplete = true
 	m.timerRunning = false // Stop the timer
 	total, correct, errors := m.text.Stats()
 	accuracy := 0.0
@@ -188,20 +187,38 @@ func (m TypingModel) View() string {
 			"\n" +
 				"GoTyper - Typing Practice " + TimerStyle.Render(m.formatElapsedTime()) + "\n\n" +
 				textContent + "\n\n" +
-				HelpStyle("Type the text above. Press ESC to quit, TAB to restart. "+
-					"Using "+(func() string {
-					if m.cursorType == BlockCursor {
-						return "Block"
-					}
-					return "Underline"
-				})()+" cursor. "+
+				HintStyle("⚫ Type the text above. results would pop when you are done typing.\n⚫ Timer will start as soon as you press the first key.\n⚫ Paragraph's lenght, gameplay and alot more can be adjusted in settings.\n⚫ Press ESC to quit, TAB to reset current passage.") +
+				"\n\n" +
+				SettingsStyle("Current Settings:") +
+				HelpStyle(" • "+
 					(func() string {
-						modeInfo := fmt.Sprintf("%s mode", strings.Title(CurrentSettings.GameMode))
-						if CurrentSettings.UseNumbers {
-							return modeInfo + " with numbers"
+						var settings []string
+
+						// Cursor type
+						cursorType := "Underline cursor"
+						if m.cursorType == BlockCursor {
+							cursorType = "Block cursor"
 						}
-						return modeInfo
-					})()+"."))
+						settings = append(settings, cursorType)
+
+						// Game mode and numbers
+						modeInfo := cases.Title(language.English).String(CurrentSettings.GameMode) + " mode"
+						if CurrentSettings.UseNumbers {
+							modeInfo += " with numbers"
+						}
+						settings = append(settings, modeInfo)
+
+						// Text length
+						lengthMap := map[string]string{
+							TextLengthShort:    "Short passage (1 quote)",
+							TextLengthMedium:   "Medium passage (2 quotes)",
+							TextLengthLong:     "Long passage (3 quotes)",
+							TextLengthVeryLong: "Very Long passage (5 quotes)",
+						}
+						settings = append(settings, lengthMap[CurrentSettings.TextLength])
+
+						return strings.Join(settings, " • ")
+					})()))
 
 	result := lipgloss.Place(m.width, m.height,
 		lipgloss.Center, lipgloss.Center,

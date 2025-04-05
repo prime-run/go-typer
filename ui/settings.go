@@ -8,22 +8,31 @@ import (
 )
 
 type UserSettings struct {
-	ThemeName  string `json:"theme"`
-	CursorType string `json:"cursor_type"`
-	GameMode   string `json:"game_mode"`
-	UseNumbers bool   `json:"use_numbers"`
+	ThemeName      string `json:"theme"`
+	CursorType     string `json:"cursor_type"`
+	GameMode       string `json:"game_mode"`
+	UseNumbers     bool   `json:"use_numbers"`
+	TextLength     string `json:"text_length"`
+	HasSeenWelcome bool   `json:"has_seen_welcome"`
 }
 
 const (
 	GameModeNormal = "normal"
 	GameModeSimple = "simple"
+
+	TextLengthShort    = "short"     // 1 quote
+	TextLengthMedium   = "medium"    // 2 quotes
+	TextLengthLong     = "long"      // 3 quotes
+	TextLengthVeryLong = "very long" // 5 quotes
 )
 
 var DefaultSettings = UserSettings{
-	ThemeName:  "default",
-	CursorType: "block",
-	GameMode:   GameModeNormal,
-	UseNumbers: true,
+	ThemeName:      "default",
+	CursorType:     "block",
+	GameMode:       GameModeNormal,
+	UseNumbers:     true,
+	TextLength:     TextLengthShort,
+	HasSeenWelcome: false,
 }
 
 var CurrentSettings UserSettings
@@ -110,6 +119,10 @@ func UpdateSettings(settings UserSettings) error {
 
 	if settings.UseNumbers != CurrentSettings.UseNumbers {
 		CurrentSettings.UseNumbers = settings.UseNumbers
+	}
+
+	if settings.TextLength != "" {
+		CurrentSettings.TextLength = settings.TextLength
 	}
 
 	ApplySettings()

@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -35,12 +36,12 @@ type menuItem struct {
 }
 
 type StartScreenModel struct {
+	width           int
+	height          int
 	menuState       int
 	selectedItem    int
 	mainMenuItems   []menuItem
 	settingsItems   []menuItem
-	width           int
-	height          int
 	cursorType      string
 	selectedTheme   string
 	initialTheme    string
@@ -48,6 +49,8 @@ type StartScreenModel struct {
 	themeChanged    bool
 	gameMode        string
 	useNumbers      bool
+	textLength      string
+	startTime       time.Time
 }
 
 func NewStartScreenModel() *StartScreenModel {
@@ -63,6 +66,8 @@ func NewStartScreenModel() *StartScreenModel {
 		themeChanged:    false,
 		gameMode:        CurrentSettings.GameMode,
 		useNumbers:      CurrentSettings.UseNumbers,
+		textLength:      CurrentSettings.TextLength,
+		startTime:       time.Now(),
 	}
 
 	model.mainMenuItems = []menuItem{
@@ -78,6 +83,7 @@ func NewStartScreenModel() *StartScreenModel {
 		{title: "Cursor Style", action: cycleCursor},
 		{title: "Game Mode", action: cycleGameMode},
 		{title: "Use Numbers", action: toggleNumbers},
+		{title: "Text Length", action: cycleTextLength},
 		{title: "Back", action: saveAndGoBack},
 	}
 
@@ -94,7 +100,9 @@ func NewStartScreenModel() *StartScreenModel {
 }
 
 func (m *StartScreenModel) Init() tea.Cmd {
-	return nil
+	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
+		return t
+	})
 }
 
 func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -189,6 +197,11 @@ func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+
+	case time.Time:
+		return m, tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
+			return t
+		})
 	}
 
 	return m, nil
@@ -198,30 +211,9 @@ func (m *StartScreenModel) View() string {
 	var menuContent string
 
 	if m.menuState == MenuMain {
-		// Create gradient colors from light blue to dark blue
-		colors := []string{
-			"#87CEEB", // Sky blue
-			"#4682B4", // Steel blue
-			"#1E90FF", // Dodger blue
-			"#0000CD", // Medium blue
-			"#000080", // Navy blue
-		}
-
-		// Apply gradient to each line
-		var logo strings.Builder
-		lines := strings.Split(logoArt, "\n")
-		for i, line := range lines {
-			if line == "" {
-				logo.WriteString("\n")
-				continue
-			}
-			colorIndex := i % len(colors)
-			style := lipgloss.NewStyle().Foreground(lipgloss.Color(colors[colorIndex]))
-			logo.WriteString(style.Render(line))
-			logo.WriteString("\n")
-		}
-
-		menuContent = fmt.Sprintf("%s\n%s", logo.String(), m.renderMainMenu())
+		menuContent = fmt.Sprintf("%s\n%s",
+			renderAnimatedAscii(logoArt, m.startTime),
+			m.renderMainMenu())
 	} else if m.menuState == MenuSettings {
 		menuContent = m.renderSettingsMenu()
 	}
@@ -322,6 +314,8 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 			menuText = fmt.Sprintf("%-15s: %s", item.title, m.gameMode)
 		} else if i == 3 {
 			menuText = fmt.Sprintf("%-15s: %v", item.title, m.useNumbers)
+		} else if i == 4 {
+			menuText = fmt.Sprintf("%-15s: %s", item.title, m.textLength)
 		}
 
 		settingsList = append(settingsList, s.Render(menuText))
@@ -339,6 +333,8 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 			exampleBox = renderGameModeExample(m.gameMode)
 		case 3:
 			exampleBox = renderUseNumbersExample(m.useNumbers)
+		case 4:
+			exampleBox = renderTextLengthExample(m.textLength)
 		}
 	}
 
@@ -375,24 +371,25 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 func renderThemeExample(theme string) string {
 	var sb strings.Builder
 
-	// Get the current theme colors
-	colors := map[string]lipgloss.Color{
-		"Help Text":    GetColor("help_text"),
-		"Timer":        GetColor("timer"),
-		"Border":       GetColor("border"),
-		"Text Dim":     GetColor("text_dim"),
-		"Text Preview": GetColor("text_preview"),
-		"Text Correct": GetColor("text_correct"),
-		"Text Error":   GetColor("text_error"),
-		"Text Partial": GetColor("text_partial_error"),
-		"Cursor FG":    GetColor("cursor_fg"),
-		"Cursor BG":    GetColor("cursor_bg"),
-		"Cursor Under": GetColor("cursor_underline"),
-		"Padding":      GetColor("padding"),
+	// Define color order
+	colorOrder := []string{
+		"Help Text",
+		"Timer",
+		"Border",
+		"Text Dim",
+		"Text Preview",
+		"Text Correct",
+		"Text Error",
+		"Text Partial",
+		"Cursor FG",
+		"Cursor BG",
+		"Cursor Under",
+		"Padding",
 	}
 
-	// Create color preview boxes
-	for name, color := range colors {
+	// Create color preview boxes with static colors
+	for _, name := range colorOrder {
+		color := GetColor(strings.ToLower(strings.ReplaceAll(name, " ", "_")))
 		style := lipgloss.NewStyle().
 			Foreground(color).
 			Padding(0, 1)
@@ -505,6 +502,68 @@ func renderUseNumbersExample(useNumbers bool) string {
 	return example.String()
 }
 
+func renderTextLengthExample(length string) string {
+	var example strings.Builder
+
+	// Title with timer color
+	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	example.WriteString(titleStyle.Render("Text Length: "))
+
+	// Length value with text_preview color
+	valueStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
+	example.WriteString(valueStyle.Render(length))
+	example.WriteString("\n\n")
+
+	// Example section
+	example.WriteString(titleStyle.Render("Quotes to fetch:\n"))
+
+	// Show number of quotes based on length
+	textCount := map[string]int{
+		TextLengthShort:    1,
+		TextLengthMedium:   2,
+		TextLengthLong:     3,
+		TextLengthVeryLong: 5,
+	}
+
+	count := textCount[length]
+	example.WriteString(fmt.Sprintf("\nWill fetch and combine %d quote(s)", count))
+	example.WriteString("\nEstimated word count: ")
+
+	// Estimated word count
+	wordCount := count * 30 // Assuming average of 30 words per quote
+	example.WriteString(valueStyle.Render(fmt.Sprintf("%d words", wordCount)))
+
+	return example.String()
+}
+
+func renderAnimatedAscii(logoArt string, startTime time.Time) string {
+	var result strings.Builder
+	colors := []string{
+		"#87CEEB", // Sky blue
+		"#4682B4", // Steel blue
+		"#1E90FF", // Dodger blue
+		"#0000CD", // Medium blue
+		"#000080", // Navy blue
+	}
+
+	elapsed := time.Since(startTime).Milliseconds()
+	startIndex := int(elapsed/100) % len(colors)
+
+	lines := strings.Split(logoArt, "\n")
+	for i, line := range lines {
+		if line == "" {
+			result.WriteString("\n")
+			continue
+		}
+		colorIndex := (startIndex + i) % len(colors)
+		style := lipgloss.NewStyle().Foreground(lipgloss.Color(colors[colorIndex]))
+		result.WriteString(style.Render(line))
+		result.WriteString("\n")
+	}
+
+	return result.String()
+}
+
 func startGame(m *StartScreenModel) tea.Cmd {
 	return tea.Quit
 }
@@ -535,6 +594,7 @@ func saveAndGoBack(m *StartScreenModel) tea.Cmd {
 		CursorType: m.cursorType,
 		GameMode:   m.gameMode,
 		UseNumbers: m.useNumbers,
+		TextLength: m.textLength,
 	})
 
 	m.menuState = MenuMain
@@ -586,17 +646,37 @@ func toggleNumbers(m *StartScreenModel) tea.Cmd {
 	return nil
 }
 
+func cycleTextLength(m *StartScreenModel) tea.Cmd {
+	lengths := []string{TextLengthShort, TextLengthMedium, TextLengthLong, TextLengthVeryLong}
+	var currentIndex int
+
+	for i, length := range lengths {
+		if length == m.textLength {
+			currentIndex = i
+			break
+		}
+	}
+
+	currentIndex = (currentIndex + 1) % len(lengths)
+	m.textLength = lengths[currentIndex]
+
+	return nil
+}
+
 type StartGameMsg struct {
 	cursorType string
 	theme      string
 }
 
 func RunStartScreen() {
+	// Show welcome screen first
+	ShowWelcomeScreen()
+
 	p := tea.NewProgram(NewStartScreenModel(), tea.WithAltScreen())
 
 	model, err := p.Run()
 	if err != nil {
-		fmt.Println("Error running start screen:", err)
+		fmt.Printf("Error running start screen: %v\n", err)
 		return
 	}
 
@@ -606,6 +686,7 @@ func RunStartScreen() {
 			CursorType: m.cursorType,
 			GameMode:   m.gameMode,
 			UseNumbers: m.useNumbers,
+			TextLength: m.textLength,
 		})
 
 		if m.menuState == MenuMain && m.selectedItem < len(m.mainMenuItems) {
