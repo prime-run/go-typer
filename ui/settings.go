@@ -14,6 +14,7 @@ type UserSettings struct {
 	UseNumbers     bool   `json:"use_numbers"`
 	TextLength     string `json:"text_length"`
 	HasSeenWelcome bool   `json:"has_seen_welcome"`
+	RefreshRate    int    `json:"refresh_rate"` // Frames per second
 }
 
 const (
@@ -33,6 +34,7 @@ var DefaultSettings = UserSettings{
 	UseNumbers:     true,
 	TextLength:     TextLengthShort,
 	HasSeenWelcome: false,
+	RefreshRate:    10, // Default to 10 FPS (100ms)
 }
 
 var CurrentSettings UserSettings
@@ -123,6 +125,10 @@ func UpdateSettings(settings UserSettings) error {
 
 	if settings.TextLength != "" {
 		CurrentSettings.TextLength = settings.TextLength
+	}
+
+	if settings.RefreshRate > 0 {
+		CurrentSettings.RefreshRate = settings.RefreshRate
 	}
 
 	ApplySettings()

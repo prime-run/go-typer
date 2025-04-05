@@ -14,69 +14,32 @@ type WelcomeModel struct {
 	step      int
 	done      bool
 	startTime time.Time
+	lastTick  time.Time
 }
 
-// Gradient colors for animation
-var gradientColors = []string{
-	"#00ADD8", // Go blue
-	"#15B5DB",
-	"#2ABEDE",
-	"#3FC6E1",
-	"#54CFE4",
-	"#69D7E7",
-	"#7EE0EA",
-	"#93E8ED",
-	"#A8F1F0",
-	"#BDF9F3",
-	"#D2FFF6",
-	"#E7FFF9",
-	"#FCFFFC",
-	"#E7FFF9",
-	"#D2FFF6",
-	"#BDF9F3",
-	"#A8F1F0",
-	"#93E8ED",
-	"#7EE0EA",
-	"#69D7E7",
-	"#54CFE4",
-	"#3FC6E1",
-	"#2ABEDE",
-	"#15B5DB",
-}
+// Gradient is now defined in the shared gradient.go file
 
-func getGradientIndex(startTime time.Time) int {
-	elapsed := time.Since(startTime).Milliseconds()
-	return int(elapsed/30) % len(gradientColors)
-}
-
-func renderGradientText(text string, startTime time.Time) string {
-	var result string
-	colorIndex := getGradientIndex(startTime)
-
-	for _, char := range text {
-		style := lipgloss.NewStyle().Foreground(lipgloss.Color(gradientColors[colorIndex]))
-		result += style.Render(string(char))
-		colorIndex = (colorIndex + 1) % len(gradientColors)
-	}
-	return result
-}
-
-func NewWelcomeModel() WelcomeModel {
-	return WelcomeModel{
+func NewWelcomeModel() *WelcomeModel {
+	return &WelcomeModel{
 		step:      0,
 		done:      false,
 		startTime: time.Now(),
+		lastTick:  time.Now(),
 	}
 }
 
-func (m WelcomeModel) Init() tea.Cmd {
-	return tea.Tick(time.Millisecond*16, func(t time.Time) tea.Msg {
-		return t
-	})
+func (m *WelcomeModel) Init() tea.Cmd {
+	return InitGlobalTick()
 }
 
-func (m WelcomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *WelcomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case GlobalTickMsg:
+		// Handle the global tick
+		var cmd tea.Cmd
+		m.lastTick, _, cmd = HandleGlobalTick(m.lastTick, msg)
+		return m, cmd
+
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
 			return m, tea.Quit
@@ -89,25 +52,18 @@ func (m WelcomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			SaveSettings()
 			return m, tea.Quit
 		}
-		return m, tea.Tick(time.Millisecond*16, func(t time.Time) tea.Msg {
-			return t
-		})
+		return m, nil
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
-
-	case time.Time:
-		return m, tea.Tick(time.Millisecond*16, func(t time.Time) tea.Msg {
-			return t
-		})
 	}
 
 	return m, nil
 }
 
-func (m WelcomeModel) View() string {
+func (m *WelcomeModel) View() string {
 	if m.done {
 		return ""
 	}
@@ -123,18 +79,18 @@ func (m WelcomeModel) View() string {
 	var content string
 	switch m.step {
 	case 0:
-		title := renderGradientText("Welcome to Go Typer!", m.startTime)
-		description := renderGradientText("A modern, feature-rich typing practice tool built with Go.", m.startTime)
+		title := RenderGradientText("Welcome to Go Typer!", m.lastTick)
+		description := RenderGradientText("A modern, feature-rich typing practice tool built with Go.", m.lastTick)
 		content = titleStyle.Render(title) + "\n\n" +
 			textStyle.Render(description) + "\n\n" +
 			HintStyle("Press any key to continue...")
 
 	case 1:
-		title := renderGradientText("Getting Started", m.startTime)
-		features := renderGradientText("• Practice with different text lengths\n"+
+		title := RenderGradientText("Getting Started", m.lastTick)
+		features := RenderGradientText("• Practice with different text lengths\n"+
 			"• Choose between normal and simple modes\n"+
 			"• Track your WPM and accuracy\n"+
-			"• Customize your experience in settings", m.startTime)
+			"• Customize your experience in settings", m.lastTick)
 		content = titleStyle.Render(title) + "\n\n" +
 			textStyle.Render(features) + "\n\n" +
 			HintStyle("Press any key to start typing...")
@@ -149,11 +105,10 @@ func ShowWelcomeScreen() bool {
 	// Initialize settings first
 	InitSettings()
 
-	// During development, always show welcome screen
-	// TODO: Uncomment this check when welcome screen is finalized
-	// if CurrentSettings.HasSeenWelcome {
-	// 	return false
-	// }
+	// Only show welcome screen if user hasn't seen it before
+	if CurrentSettings.HasSeenWelcome {
+		return false
+	}
 
 	model := NewWelcomeModel()
 	p := tea.NewProgram(model, tea.WithAltScreen())

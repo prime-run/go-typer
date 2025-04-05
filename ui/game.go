@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -10,8 +9,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-type gameTickMsg time.Time
 
 type TypingModel struct {
 	text         *Text
@@ -23,43 +20,36 @@ type TypingModel struct {
 	lastKeyTime  time.Time
 	needsRefresh bool
 	gameComplete bool
+	lastTick     time.Time
 }
 
-func NewTypingModel(width, height int, text string) TypingModel {
+func NewTypingModel(width, height int, text string) *TypingModel {
 	DebugLog("Game: Creating new typing model with text: %s", text)
-	model := TypingModel{
+	model := &TypingModel{
 		width:        width,
 		height:       height,
 		timerRunning: false,
 		cursorType:   DefaultCursorType,
 		needsRefresh: true,
 		lastKeyTime:  time.Now(),
+		lastTick:     time.Now(),
 	}
 	model.text = NewText(text)
 	model.text.SetCursorType(DefaultCursorType)
 	return model
 }
 
-func (m TypingModel) Init() tea.Cmd {
+func (m *TypingModel) Init() tea.Cmd {
 	DebugLog("Game: Init called")
-	return tea.Batch(
-		gameTickCommand(),
-	)
+	return InitGlobalTick() // Start the global ticker
 }
 
-func gameTickCommand() tea.Cmd {
-	return tea.Tick(time.Millisecond*33, func(t time.Time) tea.Msg {
-		return gameTickMsg(t)
-	})
-}
-
-func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case gameTickMsg:
-		if m.needsRefresh {
-			m.needsRefresh = false
-			return m, nil
-		}
+	case GlobalTickMsg:
+		// Handle the global tick
+		var cmd tea.Cmd
+		m.lastTick, _, cmd = HandleGlobalTick(m.lastTick, msg)
 
 		// Check for game completion
 		if !m.gameComplete && m.text.GetCursorPos() == len(m.text.words)-1 {
@@ -69,12 +59,7 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// refreshrate WARN:migh cause alot of issues!
-		if m.timerRunning && time.Since(m.lastKeyTime) > 5*time.Second {
-			return m, gameTickCommand()
-		}
-
-		return m, gameTickCommand()
+		return m, cmd
 
 	case tea.KeyMsg:
 		// If game is complete, ignore all typing input
@@ -83,7 +68,6 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.lastKeyTime = time.Now()
-		m.needsRefresh = true
 
 		keyStr := msg.String()
 		DebugLog("Game: Key pressed: %s", keyStr)
@@ -98,10 +82,10 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyTab:
 			// Restart with the same text
-			return NewTypingModel(m.width, m.height, m.text.GetText()), gameTickCommand()
+			newModel := NewTypingModel(m.width, m.height, m.text.GetText())
+			return newModel, InitGlobalTick()
 		case tea.KeyBackspace:
 			m.text.Backspace()
-			return m, nil
 		default:
 			if len(keyStr) == 1 {
 				m.text.Type([]rune(keyStr)[0])
@@ -114,8 +98,9 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
-			return m, nil
 		}
+
+		return m, nil
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -127,13 +112,16 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // handleGameCompletion handles the game completion logic and returns the end game model
-func (m TypingModel) handleGameCompletion() (tea.Model, tea.Cmd) {
+func (m *TypingModel) handleGameCompletion() (tea.Model, tea.Cmd) {
 	total, correct, errors := m.text.Stats()
 	accuracy := 0.0
 	if total > 0 {
 		accuracy = float64(correct) / float64(total) * 100
 	}
-	elapsedMinutes := time.Since(m.startTime).Minutes()
+
+	// Calculate elapsed minutes using the tick time instead of direct time.Since
+	elapsedMinutes := m.lastTick.Sub(m.startTime).Minutes()
+
 	wpm := 0.0
 	if elapsedMinutes > 0 {
 		wpm = float64(correct*5) / elapsedMinutes / 5
@@ -143,22 +131,23 @@ func (m TypingModel) handleGameCompletion() (tea.Model, tea.Cmd) {
 	endModel := NewEndGameModel(wpm, accuracy, total, correct, errors, m.text.GetText())
 	endModel.width = m.width
 	endModel.height = m.height
-	return endModel, nil
+	return endModel, InitGlobalTick() // Make sure the end game screen keeps getting ticks
 }
 
-func (m TypingModel) formatElapsedTime() string {
+func (m *TypingModel) formatElapsedTime() string {
 	if !m.timerRunning {
 		return "00:00"
 	}
 
-	elapsed := time.Since(m.startTime)
+	// Calculate elapsed time based on the current tick time rather than direct time calculation
+	elapsed := m.lastTick.Sub(m.startTime)
 	minutes := int(elapsed.Minutes())
 	seconds := int(elapsed.Seconds()) % 60
 
 	return fmt.Sprintf("%02d:%02d", minutes, seconds)
 }
 
-func (m TypingModel) View() string {
+func (m *TypingModel) View() string {
 	startTime := time.Now()
 	DebugLog("Game: View rendering started")
 	DebugLog("Game: Current text: %s", m.text.GetText())
@@ -174,45 +163,38 @@ func (m TypingModel) View() string {
 			Render(textContent)
 	}
 
+	// Cursor type
+	cursorType := "Underline cursor"
+	if m.cursorType == BlockCursor {
+		cursorType = "Block cursor"
+	}
+
+	// Game mode and numbers
+	modeInfo := cases.Title(language.English).String(CurrentSettings.GameMode) + " mode"
+	if CurrentSettings.UseNumbers {
+		modeInfo += " with numbers"
+	}
+
+	// Text length mapping
+	lengthMap := map[string]string{
+		TextLengthShort:    "Short passage (1 quote)",
+		TextLengthMedium:   "Medium passage (2 quotes)",
+		TextLengthLong:     "Long passage (3 quotes)",
+		TextLengthVeryLong: "Very Long passage (5 quotes)",
+	}
+
+	// Render the complete view in one go
 	content := lipgloss.NewStyle().
 		Width(m.width * 3 / 4).
 		Align(lipgloss.Center).
-		Render(
-			"\n" +
-				"GoTyper - Typing Practice " + TimerStyle.Render(m.formatElapsedTime()) + "\n\n" +
-				textContent + "\n\n" +
-				HintStyle("⚫ Type the text above. results would pop when you are done typing.\n⚫ Timer will start as soon as you press the first key.\n⚫ Paragraph's lenght, gameplay and alot more can be adjusted in settings.\n⚫ Press ESC to quit, TAB to reset current passage.") +
-				"\n\n" +
-				SettingsStyle("Current Settings:") +
-				HelpStyle(" • "+
-					(func() string {
-						var settings []string
-
-						// Cursor type
-						cursorType := "Underline cursor"
-						if m.cursorType == BlockCursor {
-							cursorType = "Block cursor"
-						}
-						settings = append(settings, cursorType)
-
-						// Game mode and numbers
-						modeInfo := cases.Title(language.English).String(CurrentSettings.GameMode) + " mode"
-						if CurrentSettings.UseNumbers {
-							modeInfo += " with numbers"
-						}
-						settings = append(settings, modeInfo)
-
-						// Text length
-						lengthMap := map[string]string{
-							TextLengthShort:    "Short passage (1 quote)",
-							TextLengthMedium:   "Medium passage (2 quotes)",
-							TextLengthLong:     "Long passage (3 quotes)",
-							TextLengthVeryLong: "Very Long passage (5 quotes)",
-						}
-						settings = append(settings, lengthMap[CurrentSettings.TextLength])
-
-						return strings.Join(settings, " • ")
-					})()))
+		Render(fmt.Sprintf(
+			"\nGoTyper - Typing Practice %s\n\n%s\n\n%s\n\n%s\n%s",
+			TimerStyle.Render(m.formatElapsedTime()),
+			textContent,
+			HintStyle("◾ Type the text above. results would pop when you are done typing.\n◾ Timer will start as soon as you press the first key.\n◾ Paragraph's lenght, gameplay and alot more can be adjusted in settings.\n◾ Press ESC to quit, TAB to reset current passage."),
+			SettingsStyle("Current Settings:"),
+			HelpStyle(fmt.Sprintf(" • %s • %s • %s", cursorType, modeInfo, lengthMap[CurrentSettings.TextLength])),
+		))
 
 	result := lipgloss.Place(m.width, m.height,
 		lipgloss.Center, lipgloss.Center,

@@ -138,7 +138,6 @@ func init() {
 
 	UpdateStyles()
 }
-
 func GetSampleText() string {
 	if CurrentSettings.GameMode == GameModeSimple {
 		if CurrentSettings.UseNumbers {

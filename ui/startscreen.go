@@ -50,7 +50,9 @@ type StartScreenModel struct {
 	gameMode        string
 	useNumbers      bool
 	textLength      string
+	refreshRate     int
 	startTime       time.Time
+	lastTick        time.Time
 }
 
 func NewStartScreenModel() *StartScreenModel {
@@ -67,7 +69,9 @@ func NewStartScreenModel() *StartScreenModel {
 		gameMode:        CurrentSettings.GameMode,
 		useNumbers:      CurrentSettings.UseNumbers,
 		textLength:      CurrentSettings.TextLength,
+		refreshRate:     CurrentSettings.RefreshRate,
 		startTime:       time.Now(),
+		lastTick:        time.Now(),
 	}
 
 	model.mainMenuItems = []menuItem{
@@ -84,6 +88,7 @@ func NewStartScreenModel() *StartScreenModel {
 		{title: "Game Mode", action: cycleGameMode},
 		{title: "Use Numbers", action: toggleNumbers},
 		{title: "Text Length", action: cycleTextLength},
+		{title: "Refresh Rate", action: cycleRefreshRate},
 		{title: "Back", action: saveAndGoBack},
 	}
 
@@ -100,13 +105,17 @@ func NewStartScreenModel() *StartScreenModel {
 }
 
 func (m *StartScreenModel) Init() tea.Cmd {
-	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
-		return t
-	})
+	return InitGlobalTick()
 }
 
 func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case GlobalTickMsg:
+		// Handle the global tick
+		var cmd tea.Cmd
+		m.lastTick, _, cmd = HandleGlobalTick(m.lastTick, msg)
+		return m, cmd
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -197,11 +206,7 @@ func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-
-	case time.Time:
-		return m, tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
-			return t
-		})
+		return m, nil
 	}
 
 	return m, nil
@@ -212,7 +217,7 @@ func (m *StartScreenModel) View() string {
 
 	if m.menuState == MenuMain {
 		menuContent = fmt.Sprintf("%s\n%s",
-			renderAnimatedAscii(logoArt, m.startTime),
+			renderAnimatedAscii(logoArt, m.lastTick),
 			m.renderMainMenu())
 	} else if m.menuState == MenuSettings {
 		menuContent = m.renderSettingsMenu()
@@ -281,11 +286,26 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 	titleStyle := lipgloss.NewStyle().
 		Foreground(GetColor("timer")).
 		Bold(true).
-		Margin(1, 0, 2, 0).
-		PaddingLeft(2)
+		Margin(1, 0, 2, 0)
 
 	sb.WriteString(titleStyle.Render("Settings"))
 	sb.WriteString("\n\n")
+
+	var exampleContent string
+
+	if m.selectedItem == 0 {
+		exampleContent = renderThemeExample(m.selectedTheme)
+	} else if m.selectedItem == 1 {
+		exampleContent = renderCursorExample(m.cursorType)
+	} else if m.selectedItem == 2 {
+		exampleContent = renderGameModeExample(m.gameMode)
+	} else if m.selectedItem == 3 {
+		exampleContent = renderUseNumbersExample(m.useNumbers)
+	} else if m.selectedItem == 4 {
+		exampleContent = renderTextLengthExample(m.textLength)
+	} else if m.selectedItem == 5 {
+		exampleContent = renderRefreshRateExample(m.refreshRate, m.lastTick)
+	}
 
 	// Create left column for settings items
 	var settingsList []string
@@ -316,6 +336,8 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 			menuText = fmt.Sprintf("%-15s: %v", item.title, m.useNumbers)
 		} else if i == 4 {
 			menuText = fmt.Sprintf("%-15s: %s", item.title, m.textLength)
+		} else if i == 5 {
+			menuText = fmt.Sprintf("%-15s: %d FPS", item.title, m.refreshRate)
 		}
 
 		settingsList = append(settingsList, s.Render(menuText))
@@ -326,7 +348,7 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 	if m.selectedItem < len(m.settingsItems) {
 		switch m.selectedItem {
 		case 0:
-			exampleBox = renderThemeExample(m.selectedTheme)
+			exampleBox = exampleContent
 		case 1:
 			exampleBox = renderCursorExample(m.cursorType)
 		case 2:
@@ -335,6 +357,8 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 			exampleBox = renderUseNumbersExample(m.useNumbers)
 		case 4:
 			exampleBox = renderTextLengthExample(m.textLength)
+		case 5:
+			exampleBox = renderRefreshRateExample(m.refreshRate, m.lastTick)
 		}
 	}
 
@@ -536,7 +560,54 @@ func renderTextLengthExample(length string) string {
 	return example.String()
 }
 
-func renderAnimatedAscii(logoArt string, startTime time.Time) string {
+func renderRefreshRateExample(rate int, tickTime time.Time) string {
+	var sb strings.Builder
+
+	titleStyle := lipgloss.NewStyle().
+		Foreground(GetColor("timer")).
+		Bold(true)
+
+	sb.WriteString(titleStyle.Render("Refresh Rate: "))
+
+	valueStyle := lipgloss.NewStyle().
+		Foreground(GetColor("text_preview"))
+	sb.WriteString(valueStyle.Render(fmt.Sprintf("%d FPS", rate)))
+	sb.WriteString("\n\n")
+
+	// Description
+	descStyle := lipgloss.NewStyle().
+		Foreground(GetColor("text_dim"))
+
+	sb.WriteString(descStyle.Render(
+		fmt.Sprintf("Updates %d times per second (%.1f ms per frame)",
+			rate, 1000.0/float64(rate))))
+	sb.WriteString("\n\n")
+
+	helpStyle := lipgloss.NewStyle().
+		Foreground(GetColor("help_text"))
+
+	sb.WriteString(helpStyle.Render(
+		"Higher values give smoother animations\n" +
+			"Lower values use less CPU/battery"))
+	sb.WriteString("\n\n")
+
+	// Show a refresh rate visualization with animated spinner
+	var spinner string
+	frames := []string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"}
+	// Use the tick time for animation instead of direct time calculation
+	index := int(tickTime.UnixNano()/int64(time.Second/time.Duration(rate))) % len(frames)
+	spinner = frames[index]
+
+	spinnerStyle := lipgloss.NewStyle().
+		Foreground(GetColor("text_correct"))
+
+	sb.WriteString(spinnerStyle.Render(spinner + " "))
+	sb.WriteString(valueStyle.Render(fmt.Sprintf("Animation at %d FPS", rate)))
+
+	return sb.String()
+}
+
+func renderAnimatedAscii(logoArt string, tickTime time.Time) string {
 	var result strings.Builder
 	colors := []string{
 		"#87CEEB", // Sky blue
@@ -546,8 +617,8 @@ func renderAnimatedAscii(logoArt string, startTime time.Time) string {
 		"#000080", // Navy blue
 	}
 
-	elapsed := time.Since(startTime).Milliseconds()
-	startIndex := int(elapsed/100) % len(colors)
+	// Use direct tick time instead of elapsed time since start
+	startIndex := int(tickTime.UnixNano()/int64(100*time.Millisecond)) % len(colors)
 
 	lines := strings.Split(logoArt, "\n")
 	for i, line := range lines {
@@ -586,19 +657,30 @@ func quitGame(m *StartScreenModel) tea.Cmd {
 }
 
 func saveAndGoBack(m *StartScreenModel) tea.Cmd {
-	m.initialTheme = m.selectedTheme
-	m.themeChanged = false
+	settings := UserSettings{
+		ThemeName:      m.selectedTheme,
+		CursorType:     m.cursorType,
+		GameMode:       m.gameMode,
+		UseNumbers:     m.useNumbers,
+		TextLength:     m.textLength,
+		RefreshRate:    m.refreshRate,
+		HasSeenWelcome: CurrentSettings.HasSeenWelcome,
+	}
 
-	UpdateSettings(UserSettings{
-		ThemeName:  m.selectedTheme,
-		CursorType: m.cursorType,
-		GameMode:   m.gameMode,
-		UseNumbers: m.useNumbers,
-		TextLength: m.textLength,
-	})
+	if err := UpdateSettings(settings); err != nil {
+		DebugLog("Settings: Error updating settings: %v", err)
+	}
 
 	m.menuState = MenuMain
 	m.selectedItem = 0
+
+	for m.mainMenuItems[m.selectedItem].disabled {
+		m.selectedItem++
+		if m.selectedItem >= len(m.mainMenuItems) {
+			m.selectedItem = 0
+		}
+	}
+
 	return nil
 }
 
@@ -663,6 +745,25 @@ func cycleTextLength(m *StartScreenModel) tea.Cmd {
 	return nil
 }
 
+func cycleRefreshRate(m *StartScreenModel) tea.Cmd {
+	// Common refresh rates: 5, 10, 15, 30, 60
+	rates := []int{5, 10, 15, 30, 60}
+
+	currentIndex := -1
+	for i, r := range rates {
+		if r == m.refreshRate {
+			currentIndex = i
+			break
+		}
+	}
+
+	// If not found or at end, go to beginning
+	currentIndex = (currentIndex + 1) % len(rates)
+	m.refreshRate = rates[currentIndex]
+
+	return nil
+}
+
 type StartGameMsg struct {
 	cursorType string
 	theme      string
@@ -682,11 +783,13 @@ func RunStartScreen() {
 
 	if m, ok := model.(*StartScreenModel); ok {
 		UpdateSettings(UserSettings{
-			ThemeName:  m.selectedTheme,
-			CursorType: m.cursorType,
-			GameMode:   m.gameMode,
-			UseNumbers: m.useNumbers,
-			TextLength: m.textLength,
+			ThemeName:      m.selectedTheme,
+			CursorType:     m.cursorType,
+			GameMode:       m.gameMode,
+			UseNumbers:     m.useNumbers,
+			TextLength:     m.textLength,
+			RefreshRate:    m.refreshRate,
+			HasSeenWelcome: CurrentSettings.HasSeenWelcome,
 		})
 
 		if m.menuState == MenuMain && m.selectedItem < len(m.mainMenuItems) {

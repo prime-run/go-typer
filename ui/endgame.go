@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -18,10 +19,12 @@ type EndGameModel struct {
 	correct      int
 	errors       int
 	text         string
+	startTime    time.Time
+	lastTick     time.Time
 }
 
-func NewEndGameModel(wpm, accuracy float64, words, correct, errors int, text string) EndGameModel {
-	return EndGameModel{
+func NewEndGameModel(wpm, accuracy float64, words, correct, errors int, text string) *EndGameModel {
+	return &EndGameModel{
 		selectedItem: 0,
 		wpm:          wpm,
 		accuracy:     accuracy,
@@ -29,15 +32,23 @@ func NewEndGameModel(wpm, accuracy float64, words, correct, errors int, text str
 		correct:      correct,
 		errors:       errors,
 		text:         text,
+		startTime:    time.Now(),
+		lastTick:     time.Now(),
 	}
 }
 
-func (m EndGameModel) Init() tea.Cmd {
-	return nil
+func (m *EndGameModel) Init() tea.Cmd {
+	return InitGlobalTick()
 }
 
-func (m EndGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *EndGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case GlobalTickMsg:
+		// Handle the global tick
+		var cmd tea.Cmd
+		m.lastTick, _, cmd = HandleGlobalTick(m.lastTick, msg)
+		return m, cmd
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -48,17 +59,19 @@ func (m EndGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.selectedItem < 0 {
 				m.selectedItem = 1
 			}
+			return m, nil
 
 		case "down", "j":
 			m.selectedItem++
 			if m.selectedItem > 1 {
 				m.selectedItem = 0
 			}
+			return m, nil
 
 		case "enter", " ":
 			switch m.selectedItem {
 			case 0: // Play with Same Text
-				return NewTypingModel(m.width, m.height, m.text), nil
+				return NewTypingModel(m.width, m.height, m.text), InitGlobalTick()
 			case 1: // Play with New Text
 				StartLoadingWithOptions(CurrentSettings.CursorType)
 				return m, tea.Quit
@@ -68,28 +81,41 @@ func (m EndGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		return m, nil
 	}
 
 	return m, nil
 }
 
-func (m EndGameModel) View() string {
-	// Title with border
-	title := EndGameTitleStyle.Render("Game Complete!")
+func (m *EndGameModel) View() string {
+	// Title without border
+	title := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(GetColor("text_correct")).
+		Render("Game Complete!")
 
-	// Stats with different colors and styles
-	stats := fmt.Sprintf("%s %.1f | %s %.1f%% | %s %d | %s %d | %s %d",
-		EndGameWpmStyle.Render("WPM:"), m.wpm,
-		EndGameAccuracyStyle.Render("Accuracy:"), m.accuracy,
-		EndGameWordsStyle.Render("Words:"), m.words,
-		EndGameCorrectStyle.Render("Correct:"), m.correct,
-		EndGameErrorsStyle.Render("Errors:"), m.errors)
+	// Create the base styles for each stat element
+	wpmStyle := lipgloss.NewStyle().Foreground(GetColor("timer"))
+	accuracyStyle := lipgloss.NewStyle().Foreground(GetColor("text_correct"))
+	wordsStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
+	correctStyle := lipgloss.NewStyle().Foreground(GetColor("text_correct"))
+	errorsStyle := lipgloss.NewStyle().Foreground(GetColor("text_error"))
 
-	// Stats container with border
-	statsBox := EndGameStatsBoxStyle.Render(stats)
+	// Apply gradient overlay to each stat item using lastTick for consistent animations
+	wpmText := RenderGradientOverlay(fmt.Sprintf("WPM: %.1f", m.wpm), wpmStyle, m.lastTick)
+	accuracyText := RenderGradientOverlay(fmt.Sprintf("Accuracy: %.1f%%", m.accuracy), accuracyStyle, m.lastTick)
+	wordsText := RenderGradientOverlay(fmt.Sprintf("Words: %d", m.words), wordsStyle, m.lastTick)
+	correctText := RenderGradientOverlay(fmt.Sprintf("Correct: %d", m.correct), correctStyle, m.lastTick)
+	errorsText := RenderGradientOverlay(fmt.Sprintf("Errors: %d", m.errors), errorsStyle, m.lastTick)
+
+	// Join stats with proper spacing
+	stats := fmt.Sprintf("%s   %s   %s   %s   %s",
+		wpmText, accuracyText, wordsText, correctText, errorsText)
 
 	options := []string{
 		"Play with Same Text",
@@ -115,7 +141,7 @@ func (m EndGameModel) View() string {
 		Render(
 			"\n" +
 				title + "\n\n" +
-				statsBox + "\n\n" +
+				stats + "\n\n" +
 				menu + "\n\n" +
 				HelpStyle("Use arrow keys to navigate, enter to select, esc to quit"),
 		)
