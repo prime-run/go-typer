@@ -60,17 +60,21 @@ func (t *Text) Type(r rune) {
 
 	currentWord := t.words[t.cursorPos]
 
-	if r == ' ' {
-		if currentWord.IsSpace() {
+	if currentWord.IsSpace() {
+		if r == ' ' {
 			currentWord.Type(r)
 			if t.cursorPos < len(t.words)-1 {
 				currentWord.SetActive(false)
 				t.cursorPos++
 				t.words[t.cursorPos].SetActive(true)
 			}
-			return
+		} else {
+			currentWord.Type(r)
 		}
+		return
+	}
 
+	if r == ' ' {
 		if !currentWord.HasStarted() {
 			return
 		}
@@ -83,34 +87,15 @@ func (t *Text) Type(r rune) {
 			currentWord.SetActive(false)
 			t.cursorPos++
 			t.words[t.cursorPos].SetActive(true)
-
-			nextWord := t.words[t.cursorPos]
-			if nextWord.IsSpace() {
-				nextWord.Type(' ')
-				if t.cursorPos < len(t.words)-1 {
-					nextWord.SetActive(false)
-					t.cursorPos++
-					t.words[t.cursorPos].SetActive(true)
-				}
-			}
 		}
 	} else {
 		currentWord.Type(r)
 
 		if currentWord.IsComplete() && t.cursorPos < len(t.words)-1 {
 			nextWord := t.words[t.cursorPos+1]
-			if nextWord.IsSpace() {
-				currentWord.SetActive(false)
-				t.cursorPos++
-				nextWord.SetActive(true)
-				nextWord.Type(' ')
-
-				if t.cursorPos < len(t.words)-1 {
-					nextWord.SetActive(false)
-					t.cursorPos++
-					t.words[t.cursorPos].SetActive(true)
-				}
-			}
+			currentWord.SetActive(false)
+			t.cursorPos++
+			nextWord.SetActive(true)
 		}
 	}
 }
