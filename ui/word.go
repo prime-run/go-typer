@@ -119,7 +119,10 @@ func (w *Word) updateState() {
 }
 
 func (w *Word) IsComplete() bool {
-	return len(w.typed) >= len(w.target)
+	complete := len(w.typed) >= len(w.target)
+	DebugLog("Word: IsComplete - Target: '%s' (%d), Typed: '%s' (%d), Complete: %v",
+		string(w.target), len(w.target), string(w.typed), len(w.typed), complete)
+	return complete
 }
 
 func (w *Word) HasStarted() bool {

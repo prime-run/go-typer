@@ -50,6 +50,43 @@ func UpdateStyles() {
 	UnderlineCursorStyle = lipgloss.NewStyle().
 		Foreground(GetColor("cursor_underline")).
 		Underline(true)
+
+	// Endgame screen styles
+	EndGameTitleStyle = lipgloss.NewStyle().
+		Foreground(GetColor("text_correct")).
+		Bold(true).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(GetColor("border")).
+		Padding(0, 2)
+
+	EndGameStatsBoxStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(GetColor("border")).
+		Padding(1, 2)
+
+	EndGameWpmStyle = lipgloss.NewStyle().
+		Foreground(GetColor("timer")).
+		Bold(true).
+		Underline(true)
+
+	EndGameAccuracyStyle = lipgloss.NewStyle().
+		Foreground(GetColor("text_correct"))
+
+	EndGameWordsStyle = lipgloss.NewStyle().
+		Foreground(GetColor("text_preview"))
+
+	EndGameCorrectStyle = lipgloss.NewStyle().
+		Foreground(GetColor("text_correct"))
+
+	EndGameErrorsStyle = lipgloss.NewStyle().
+		Foreground(GetColor("text_error"))
+
+	EndGameOptionStyle = lipgloss.NewStyle().
+		Foreground(GetColor("text_preview"))
+
+	EndGameSelectedOptionStyle = lipgloss.NewStyle().
+		Foreground(GetColor("text_correct")).
+		Bold(true)
 }
 
 var HelpStyle func(...string) string
@@ -66,10 +103,21 @@ var TextContainerStyle lipgloss.Style
 var BlockCursorStyle lipgloss.Style
 var UnderlineCursorStyle lipgloss.Style
 
+// Endgame screen styles
+var EndGameTitleStyle lipgloss.Style
+var EndGameStatsBoxStyle lipgloss.Style
+var EndGameWpmStyle lipgloss.Style
+var EndGameAccuracyStyle lipgloss.Style
+var EndGameWordsStyle lipgloss.Style
+var EndGameCorrectStyle lipgloss.Style
+var EndGameErrorsStyle lipgloss.Style
+var EndGameOptionStyle lipgloss.Style
+var EndGameSelectedOptionStyle lipgloss.Style
+
 const (
 	SampleTextNormal = "The quick brown fox jumps over the lazy dog. Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++."
 
-	SampleTextNormalWithNumbers = "The quick brown fox jumps over the 5 lazy dogs. In 2023, programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++, with over 300 languages in existence."
+	SampleTextNormalWithNumbers = "The quick brown fox jumps over the 5 lazy dogs. In 2023, "
 
 	SampleTextSimple = "the quick brown fox jumps over the lazy dog programming is the process of creating a set of instructions that tell a computer how to perform a task programming can be done using a variety of computer programming languages such as javascript python and c plus plus"
 

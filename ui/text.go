@@ -87,15 +87,27 @@ func (t *Text) Type(r rune) {
 			currentWord.SetActive(false)
 			t.cursorPos++
 			t.words[t.cursorPos].SetActive(true)
+		} else {
+			currentWord.SetActive(false)
+			if !currentWord.IsComplete() {
+				currentWord.Skip()
+			}
 		}
 	} else {
 		currentWord.Type(r)
 
-		if currentWord.IsComplete() && t.cursorPos < len(t.words)-1 {
-			nextWord := t.words[t.cursorPos+1]
-			currentWord.SetActive(false)
-			t.cursorPos++
-			nextWord.SetActive(true)
+		if currentWord.IsComplete() {
+			if t.cursorPos < len(t.words)-1 {
+				nextWord := t.words[t.cursorPos+1]
+				currentWord.SetActive(false)
+				t.cursorPos++
+				nextWord.SetActive(true)
+			} else {
+				currentWord.SetActive(false)
+				if !currentWord.IsComplete() {
+					currentWord.Skip()
+				}
+			}
 		}
 	}
 }
@@ -184,4 +196,17 @@ func (t *Text) Stats() (total, correct, errors int) {
 		total++
 	}
 	return
+}
+
+// GetText returns the original text content
+func (t *Text) GetText() string {
+	var words []string
+	for _, word := range t.words {
+		if !word.IsSpace() {
+			words = append(words, string(word.target))
+		} else {
+			words = append(words, " ")
+		}
+	}
+	return strings.Join(words, "")
 }
