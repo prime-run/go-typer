@@ -5,7 +5,10 @@
 
 Go Typer brings the popular web-based typing experience of MonkeyType to your terminal with a beautiful, customizable interface. Master your typing skills right in your command line without the distractions of a browser.
 
-![Screenshot](https://github.com/user-attachments/assets/5ac1ed81-da75-4222-8bcd-83b96497cb37)
+
+![250405_12h58m44s_screenshot](https://github.com/user-attachments/assets/16c52833-0e4e-432e-b7e2-5dc04a60bec2)
+![250405_12h57m45s_screenshot](https://github.com/user-attachments/assets/ebebc4d5-b895-48fb-81dd-3b920b5825bd)
+![250405_12h57m34s_screenshot](https://github.com/user-attachments/assets/309aac27-5c1e-4468-947d-123e0b33efe0)
 
 ## ✨ Features
 
