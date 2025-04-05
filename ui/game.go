@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -26,13 +25,12 @@ type TypingModel struct {
 	cursorType   CursorType
 	lastKeyTime  time.Time
 	needsRefresh bool
+	gameComplete bool
 }
 
-func NewTypingModel(width, height int) TypingModel {
-	text := NewText(GetSampleText())
-	text.SetCursorType(DefaultCursorType)
-	return TypingModel{
-		text:         text,
+func NewTypingModel(width, height int, text string) TypingModel {
+	DebugLog("Game: Creating new typing model with text: %s", text)
+	model := TypingModel{
 		width:        width,
 		height:       height,
 		timerRunning: false,
@@ -40,6 +38,9 @@ func NewTypingModel(width, height int) TypingModel {
 		needsRefresh: true,
 		lastKeyTime:  time.Now(),
 	}
+	model.text = NewText(text)
+	model.text.SetCursorType(DefaultCursorType)
+	return model
 }
 
 func (m TypingModel) Init() tea.Cmd {
@@ -60,8 +61,15 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case gameTickMsg:
 		if m.needsRefresh {
 			m.needsRefresh = false
-			DebugLog("Game: Refresh triggered by UI change")
 			return m, nil
+		}
+
+		// Check for game completion
+		if !m.gameComplete && m.text.GetCursorPos() == len(m.text.words)-1 {
+			lastWord := m.text.words[m.text.GetCursorPos()]
+			if lastWord.IsComplete() {
+				return m.handleGameCompletion()
+			}
 		}
 
 		// refreshrate WARN:migh cause alot of issues!
@@ -72,6 +80,11 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, gameTickCommand()
 
 	case tea.KeyMsg:
+		// If game is complete, ignore all typing input
+		if m.gameComplete {
+			return m, nil
+		}
+
 		m.lastKeyTime = time.Now()
 		m.needsRefresh = true
 
@@ -81,40 +94,63 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.timerRunning && keyStr != "tab" && keyStr != "esc" && keyStr != "ctrl+c" {
 			m.timerRunning = true
 			m.startTime = time.Now()
-			DebugLog("Game: Timer started")
 		}
 
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
-			DebugLog("Game: Quitting game")
 			return m, tea.Quit
 		case tea.KeyTab:
-			DebugLog("Game: Restarting game")
-			return NewTypingModel(m.width, m.height), gameTickCommand()
+			// Fetch a new text for the next game
+			newText := GetRandomText()
+			DebugLog("Game: Fetched new text for restart: %s", newText)
+			return NewTypingModel(m.width, m.height, newText), gameTickCommand()
 		case tea.KeyBackspace:
-			before := m.text.GetCursorPos()
 			m.text.Backspace()
-			after := m.text.GetCursorPos()
-			DebugLog("Game: Backspace - cursor moved from %d to %d", before, after)
 			return m, nil
 		default:
 			if len(keyStr) == 1 {
-				before := m.text.GetCursorPos()
 				m.text.Type([]rune(keyStr)[0])
-				after := m.text.GetCursorPos()
-				DebugLog("Game: Typed '%s' - cursor moved from %d to %d", keyStr, before, after)
+
+				// Check for completion after each keystroke
+				if m.text.GetCursorPos() == len(m.text.words)-1 {
+					lastWord := m.text.words[m.text.GetCursorPos()]
+					if lastWord.IsComplete() {
+						return m.handleGameCompletion()
+					}
+				}
 			}
 			return m, nil
 		}
 
 	case tea.WindowSizeMsg:
-		DebugLog("Game: Window size changed: %dx%d", msg.Width, msg.Height)
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
 	}
 
 	return m, nil
+}
+
+// handleGameCompletion handles the game completion logic and returns the end game model
+func (m TypingModel) handleGameCompletion() (tea.Model, tea.Cmd) {
+	m.gameComplete = true
+	m.timerRunning = false // Stop the timer
+	total, correct, errors := m.text.Stats()
+	accuracy := 0.0
+	if total > 0 {
+		accuracy = float64(correct) / float64(total) * 100
+	}
+	elapsedMinutes := time.Since(m.startTime).Minutes()
+	wpm := 0.0
+	if elapsedMinutes > 0 {
+		wpm = float64(correct*5) / elapsedMinutes / 5
+	}
+
+	// Create and initialize the end game model
+	endModel := NewEndGameModel(wpm, accuracy, total, correct, errors, m.text.GetText())
+	endModel.width = m.width
+	endModel.height = m.height
+	return endModel, nil
 }
 
 func (m TypingModel) formatElapsedTime() string {
@@ -132,6 +168,18 @@ func (m TypingModel) formatElapsedTime() string {
 func (m TypingModel) View() string {
 	startTime := time.Now()
 	DebugLog("Game: View rendering started")
+	DebugLog("Game: Current text: %s", m.text.GetText())
+
+	// Get the text content
+	textContent := m.text.Render()
+	DebugLog("Game: Rendered text: %s", textContent)
+
+	// If game is complete, add a completion message
+	if m.gameComplete {
+		textContent = lipgloss.NewStyle().
+			Foreground(GetColor("text_correct")).
+			Render(textContent)
+	}
 
 	content := lipgloss.NewStyle().
 		Width(m.width * 3 / 4).
@@ -139,7 +187,7 @@ func (m TypingModel) View() string {
 		Render(
 			"\n" +
 				"GoTyper - Typing Practice " + TimerStyle.Render(m.formatElapsedTime()) + "\n\n" +
-				m.text.Render() + "\n\n" +
+				textContent + "\n\n" +
 				HelpStyle("Type the text above. Press ESC to quit, TAB to restart. "+
 					"Using "+(func() string {
 					if m.cursorType == BlockCursor {
@@ -152,29 +200,8 @@ func (m TypingModel) View() string {
 						if CurrentSettings.UseNumbers {
 							return modeInfo + " with numbers"
 						}
-						return modeInfo + " without numbers"
-					})()) +
-				(func() string {
-					if !m.timerRunning {
-						return ""
-					}
-
-					total, correct, errors := m.text.Stats()
-					accuracy := 0.0
-					if total > 0 {
-						accuracy = float64(correct) / float64(total) * 100
-					}
-
-					elapsedMinutes := time.Since(m.startTime).Minutes()
-					wpm := 0.0
-					if elapsedMinutes > 0 {
-						wpm = float64(total*5) / elapsedMinutes / 5
-					}
-
-					return fmt.Sprintf("\n\nWPM: %.1f | Accuracy: %.1f%% | Words: %d | Correct: %d | Errors: %d",
-						wpm, accuracy, total, correct, errors)
-				})(),
-		)
+						return modeInfo
+					})()+"."))
 
 	result := lipgloss.Place(m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
@@ -186,11 +213,11 @@ func (m TypingModel) View() string {
 	return result
 }
 
-func StartTypingGame(width, height int) tea.Model {
+func StartTypingGame(width, height int, text string) tea.Model {
 	DebugLog("Game: Starting typing game with dimensions: %dx%d", width, height)
 
 	startTime := time.Now()
-	model := NewTypingModel(width, height)
+	model := NewTypingModel(width, height, text)
 	initTime := time.Since(startTime)
 
 	DebugLog("Game: Model initialization completed in %s", initTime)
@@ -208,13 +235,6 @@ func RunTypingGame() {
 		CurrentSettings.ThemeName, CurrentSettings.CursorType,
 		CurrentSettings.GameMode, CurrentSettings.UseNumbers)
 
-	p := tea.NewProgram(NewTypingModel(0, 0), tea.WithAltScreen())
-
-	DebugLog("Game: Starting main program loop")
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error running typing game: %v\n", err)
-		DebugLog("Game: Error running typing game: %v", err)
-		os.Exit(1)
-	}
-	DebugLog("Game: Typing game exited normally")
+	// Start with the loading screen
+	StartLoadingWithOptions(CurrentSettings.CursorType)
 }
