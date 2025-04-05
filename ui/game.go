@@ -12,11 +12,6 @@ import (
 )
 
 type gameTickMsg time.Time
-type gameStateMsg struct {
-	text         *Text
-	startTime    time.Time
-	timerRunning bool
-}
 
 type TypingModel struct {
 	text         *Text
@@ -133,7 +128,6 @@ func (m TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // handleGameCompletion handles the game completion logic and returns the end game model
 func (m TypingModel) handleGameCompletion() (tea.Model, tea.Cmd) {
-	m.timerRunning = false // Stop the timer
 	total, correct, errors := m.text.Stats()
 	accuracy := 0.0
 	if total > 0 {
