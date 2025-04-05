@@ -66,7 +66,6 @@ func (s *ZenQuotesSource) FetchText() (string, error) {
 	quote := result[0].Quote
 	author := result[0].Author
 
-	// Add period if the quote doesn't end with punctuation
 	if !strings.HasSuffix(quote, ".") && !strings.HasSuffix(quote, "!") && !strings.HasSuffix(quote, "?") {
 		quote += "."
 	}
@@ -77,33 +76,27 @@ func (s *ZenQuotesSource) FetchText() (string, error) {
 
 func (s *ZenQuotesSource) FormatText(text string) string {
 	if CurrentSettings.GameMode == GameModeSimple {
-		// Use a rune filter for punctuation removal
 		var builder strings.Builder
-		builder.Grow(len(text)) // Pre-allocate capacity
+		builder.Grow(len(text))
 
-		// Process each rune in a single pass
 		for _, r := range text {
 			if r >= 'A' && r <= 'Z' {
 				builder.WriteRune(r + 32) // Lowercase (faster than unicode functions)
 			} else if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == ' ' {
 				builder.WriteRune(r)
 			} else if r == '.' || r == ',' || r == ';' || r == ':' || r == '!' || r == '?' {
-				// Ignore punctuation
 			} else {
 				builder.WriteRune(' ')
 			}
 		}
 
-		// Clean up multiple spaces
 		processed := builder.String()
 		words := strings.Fields(processed)
 
-		// Ensure text isn't too long
 		if len(words) > 100 {
 			words = words[:100]
 		}
 
-		// Join with a single pass
 		var finalBuilder strings.Builder
 		finalBuilder.Grow(len(processed))
 
@@ -117,8 +110,6 @@ func (s *ZenQuotesSource) FormatText(text string) string {
 		return finalBuilder.String()
 	}
 
-	// For normal mode
-	// Remove extreme characters
 	var builder strings.Builder
 	builder.Grow(len(text))
 
@@ -131,16 +122,13 @@ func (s *ZenQuotesSource) FormatText(text string) string {
 		}
 	}
 
-	// Clean up multiple spaces
 	processed := builder.String()
 	words := strings.Fields(processed)
 
-	// Ensure text isn't too long
 	if len(words) > 100 {
 		words = words[:100]
 	}
 
-	// Join with a single pass
 	var finalBuilder strings.Builder
 	finalBuilder.Grow(len(processed))
 
@@ -190,7 +178,6 @@ func (s *BibleSource) FetchText() (string, error) {
 		return "", fmt.Errorf("failed to parse bible verse: %w", err)
 	}
 
-	// Clean up the verse text (remove newlines and extra spaces)
 	verse := strings.TrimSpace(result.Text)
 	verse = strings.Join(strings.Fields(verse), " ")
 
@@ -200,33 +187,27 @@ func (s *BibleSource) FetchText() (string, error) {
 
 func (s *BibleSource) FormatText(text string) string {
 	if CurrentSettings.GameMode == GameModeSimple {
-		// Use a rune filter for punctuation removal
 		var builder strings.Builder
-		builder.Grow(len(text)) // Pre-allocate capacity
+		builder.Grow(len(text))
 
-		// Process each rune in a single pass
 		for _, r := range text {
 			if r >= 'A' && r <= 'Z' {
-				builder.WriteRune(r + 32) // Lowercase (faster than unicode functions)
+				builder.WriteRune(r + 32)
 			} else if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == ' ' {
 				builder.WriteRune(r)
 			} else if r == '.' || r == ',' || r == ';' || r == ':' || r == '!' || r == '?' {
-				// Ignore punctuation
 			} else {
 				builder.WriteRune(' ')
 			}
 		}
 
-		// Clean up multiple spaces
 		processed := builder.String()
 		words := strings.Fields(processed)
 
-		// Ensure text isn't too long
 		if len(words) > 100 {
 			words = words[:100]
 		}
 
-		// Join with a single pass
 		var finalBuilder strings.Builder
 		finalBuilder.Grow(len(processed))
 
@@ -240,8 +221,6 @@ func (s *BibleSource) FormatText(text string) string {
 		return finalBuilder.String()
 	}
 
-	// For normal mode
-	// Remove extreme characters
 	var builder strings.Builder
 	builder.Grow(len(text))
 
@@ -254,16 +233,13 @@ func (s *BibleSource) FormatText(text string) string {
 		}
 	}
 
-	// Clean up multiple spaces
 	processed := builder.String()
 	words := strings.Fields(processed)
 
-	// Ensure text isn't too long
 	if len(words) > 100 {
 		words = words[:100]
 	}
 
-	// Join with a single pass
 	var finalBuilder strings.Builder
 	finalBuilder.Grow(len(processed))
 
@@ -277,13 +253,11 @@ func (s *BibleSource) FormatText(text string) string {
 	return finalBuilder.String()
 }
 
-// GetRandomText fetches a random text passage based on the current settings
 func GetRandomText() string {
 	var source TextSource
 	var err error
 	var text string
 
-	// Try both sources until we get a successful response
 	for i := 0; i < 2; i++ {
 		switch i {
 		case 0:
@@ -302,7 +276,6 @@ func GetRandomText() string {
 		DebugLog("TextSource: Failed to fetch from source %d: %v", i, err)
 	}
 
-	// If all sources fail, return a default text
 	DebugLog("TextSource: All sources failed, using default text")
 	return "The quick brown fox jumps over the lazy dog."
 }

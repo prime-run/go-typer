@@ -14,17 +14,17 @@ type UserSettings struct {
 	UseNumbers     bool   `json:"use_numbers"`
 	TextLength     string `json:"text_length"`
 	HasSeenWelcome bool   `json:"has_seen_welcome"`
-	RefreshRate    int    `json:"refresh_rate"` // Frames per second
+	RefreshRate    int    `json:"refresh_rate"` // NOTE:in frames per second not tick
 }
 
 const (
 	GameModeNormal = "normal"
 	GameModeSimple = "simple"
 
-	TextLengthShort    = "short"     // 1 quote
-	TextLengthMedium   = "medium"    // 2 quotes
-	TextLengthLong     = "long"      // 3 quotes
-	TextLengthVeryLong = "very long" // 5 quotes
+	TextLengthShort    = "short"     // 1
+	TextLengthMedium   = "medium"    // 2
+	TextLengthLong     = "long"      // 3
+	TextLengthVeryLong = "very long" // 5
 )
 
 var DefaultSettings = UserSettings{
@@ -34,7 +34,7 @@ var DefaultSettings = UserSettings{
 	UseNumbers:     true,
 	TextLength:     TextLengthShort,
 	HasSeenWelcome: false,
-	RefreshRate:    10, // Default to 10 FPS (100ms)
+	RefreshRate:    10,
 }
 
 var CurrentSettings UserSettings

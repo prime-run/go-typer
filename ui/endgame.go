@@ -2,11 +2,10 @@ package ui
 
 import (
 	"fmt"
-	"strings"
-	"time"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"strings"
+	"time"
 )
 
 type EndGameModel struct {
@@ -44,7 +43,6 @@ func (m *EndGameModel) Init() tea.Cmd {
 func (m *EndGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case GlobalTickMsg:
-		// Handle the global tick
 		var cmd tea.Cmd
 		m.lastTick, _, cmd = HandleGlobalTick(m.lastTick, msg)
 		return m, cmd
@@ -70,9 +68,9 @@ func (m *EndGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter", " ":
 			switch m.selectedItem {
-			case 0: // Play with Same Text
+			case 0:
 				return NewTypingModel(m.width, m.height, m.text), InitGlobalTick()
-			case 1: // Play with New Text
+			case 1:
 				StartLoadingWithOptions(CurrentSettings.CursorType)
 				return m, tea.Quit
 			}
@@ -93,27 +91,24 @@ func (m *EndGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *EndGameModel) View() string {
-	// Title without border
+
 	title := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(GetColor("text_correct")).
 		Render("Game Complete!")
 
-	// Create the base styles for each stat element
 	wpmStyle := lipgloss.NewStyle().Foreground(GetColor("timer"))
 	accuracyStyle := lipgloss.NewStyle().Foreground(GetColor("text_correct"))
 	wordsStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
 	correctStyle := lipgloss.NewStyle().Foreground(GetColor("text_correct"))
 	errorsStyle := lipgloss.NewStyle().Foreground(GetColor("text_error"))
 
-	// Apply gradient overlay to each stat item using lastTick for consistent animations
 	wpmText := RenderGradientOverlay(fmt.Sprintf("WPM: %.1f", m.wpm), wpmStyle, m.lastTick)
 	accuracyText := RenderGradientOverlay(fmt.Sprintf("Accuracy: %.1f%%", m.accuracy), accuracyStyle, m.lastTick)
 	wordsText := RenderGradientOverlay(fmt.Sprintf("Words: %d", m.words), wordsStyle, m.lastTick)
 	correctText := RenderGradientOverlay(fmt.Sprintf("Correct: %d", m.correct), correctStyle, m.lastTick)
 	errorsText := RenderGradientOverlay(fmt.Sprintf("Errors: %d", m.errors), errorsStyle, m.lastTick)
 
-	// Join stats with proper spacing
 	stats := fmt.Sprintf("%s   %s   %s   %s   %s",
 		wpmText, accuracyText, wordsText, correctText, errorsText)
 

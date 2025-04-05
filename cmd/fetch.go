@@ -1,25 +1,22 @@
+// NOTE:QUTE FETCHER
+// .. maybe cache using a free edge run-time and store in an S3 bucket?
 package cmd
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/cobra"
 	"io"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/spf13/cobra"
 )
 
-// formatText cleans and formats text for typing practice
 func formatText(text string) string {
-	// Remove extra whitespace
 	text = strings.TrimSpace(text)
 
-	// Replace multiple spaces with single space
 	text = strings.Join(strings.Fields(text), " ")
 
-	// Remove any non-printable characters
 	text = strings.Map(func(r rune) rune {
 		if r < 32 || r > 126 {
 			return -1
@@ -30,21 +27,17 @@ func formatText(text string) string {
 	return text
 }
 
-// formatForGameMode formats text for different game modes
 func formatForGameMode(text string, mode string) string {
 	text = formatText(text)
 
 	switch mode {
 	case "words":
-		// Split into words and rejoin with newlines
 		words := strings.Fields(text)
 		return strings.Join(words, "\n")
 	case "sentences":
-		// Split on sentence endings and clean up
 		text = strings.ReplaceAll(text, ".", ".\n")
 		text = strings.ReplaceAll(text, "!", "!\n")
 		text = strings.ReplaceAll(text, "?", "?\n")
-		// Clean up any double newlines
 		lines := strings.Split(text, "\n")
 		var cleanLines []string
 		for _, line := range lines {
@@ -82,7 +75,6 @@ var fetchCmd = &cobra.Command{
 				quote := formatText(result[0].Quote)
 				author := formatText(result[0].Author)
 
-				// Format: "Quote." - Author
 				formattedQuote := quote
 				if !strings.HasSuffix(quote, ".") && !strings.HasSuffix(quote, "!") && !strings.HasSuffix(quote, "?") {
 					formattedQuote += "."
@@ -116,7 +108,7 @@ var fetchCmd = &cobra.Command{
 				}
 
 				verse := formatText(result.Text)
-				// Don't include the reference for typing practice
+				// WARN:don't include the reference for typing practice
 				return verse, nil
 			},
 		}
@@ -135,13 +127,11 @@ var fetchCmd = &cobra.Command{
 	},
 }
 
-// TextSource represents a source for fetching text
 type TextSource struct {
 	URL    string
 	Parser func([]byte) (string, error)
 }
 
-// FetchText fetches text from the API
 func (s *TextSource) FetchText() (string, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,

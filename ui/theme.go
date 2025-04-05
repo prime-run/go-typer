@@ -2,12 +2,11 @@ package ui
 
 import (
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
+	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/charmbracelet/lipgloss"
-	"gopkg.in/yaml.v3"
 )
 
 const (

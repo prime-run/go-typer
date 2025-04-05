@@ -11,7 +11,7 @@ const (
 
 // WARN:switched to true color might comeback to bite later in testing for other termnal emulators!
 
-// TODO:a theming system would be nice
+// TODO:a theming system would be nice [x]
 
 func UpdateStyles() {
 
@@ -57,7 +57,6 @@ func UpdateStyles() {
 		Foreground(GetColor("cursor_underline")).
 		Underline(true)
 
-	// Endgame screen styles
 	EndGameTitleStyle = lipgloss.NewStyle().
 		Foreground(GetColor("text_correct")).
 		Bold(true).
@@ -111,7 +110,8 @@ var TextContainerStyle lipgloss.Style
 var BlockCursorStyle lipgloss.Style
 var UnderlineCursorStyle lipgloss.Style
 
-// Endgame screen styles
+// endgame screen styles
+// .
 var EndGameTitleStyle lipgloss.Style
 var EndGameStatsBoxStyle lipgloss.Style
 var EndGameWpmStyle lipgloss.Style

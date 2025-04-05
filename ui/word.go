@@ -1,3 +1,5 @@
+// WARN:NOTES in this files are important!
+// otehrwise it'll re-render exponentially on type!
 package ui
 
 import (
@@ -16,17 +18,16 @@ const (
 )
 
 type Word struct {
-	target []rune    // Target runes to type
-	typed  []rune    // User typed runes
-	state  WordState // Current state of the word
-	active bool      // Whether this word is active
-	cursor *Cursor   // Cursor for rendering
-	cached string    // Cached rendered output when not active or changed
-	dirty  bool      // Whether the cache needs to be refreshed
+	target []rune
+	typed  []rune
+	state  WordState
+	active bool
+	cursor *Cursor
+	cached string
+	dirty  bool
 }
 
 func NewWord(target []rune) *Word {
-	// Pre-allocate typed array with capacity of target
 	targetLen := len(target)
 	targetCopy := make([]rune, targetLen)
 	copy(targetCopy, target)
@@ -37,7 +38,7 @@ func NewWord(target []rune) *Word {
 		state:  Untyped,
 		active: false,
 		cursor: NewCursor(DefaultCursorType),
-		dirty:  true, // Start with dirty cache
+		dirty:  true, // NOTE:start with dirty cache
 	}
 }
 
@@ -69,13 +70,13 @@ func (w *Word) Skip() {
 	typedLen := len(w.typed)
 
 	if typedLen == 0 {
-		// Optimize by pre-allocating the full array
+		// NOTE:optimize by pre-allocating the full array
 		w.typed = make([]rune, targetLen)
 		for i := 0; i < targetLen; i++ {
 			w.typed[i] = '\x00'
 		}
 	} else if typedLen < targetLen {
-		// Optimize by growing the slice once
+		// NOTE:optimize by growing the slice once
 		needed := targetLen - typedLen
 		w.typed = append(w.typed, make([]rune, needed)...)
 		for i := typedLen; i < targetLen; i++ {
@@ -163,8 +164,11 @@ func (w *Word) SetCursorType(cursorType CursorType) {
 }
 
 func (w *Word) Render(showCursor bool) string {
-	// If word is active, always render fresh
-	// If word is not active and not dirty, return cached result
+	//.
+	//NOTE: If word is active, always render fresh
+	// NOTE:If word is not active and not dirty, return cached result
+	//.
+
 	if !w.active && !w.dirty && w.cached != "" {
 		return w.cached
 	}
@@ -173,10 +177,10 @@ func (w *Word) Render(showCursor bool) string {
 
 	var result strings.Builder
 
-	// Estimate buffer size to avoid reallocations
-	// Allow extra space for style sequences
-	result.Grow(max(len(w.target), len(w.typed)) * 3)
+	// NOTE:estimate buffer size to avoid reallocations
+	// NOTE:allow extra space for style sequences
 
+	result.Grow(max(len(w.target), len(w.typed)) * 3)
 	if w.IsSpace() {
 		if len(w.typed) == 0 {
 			if showCursor && w.active {
@@ -235,7 +239,6 @@ func (w *Word) Render(showCursor bool) string {
 
 	rendered := result.String()
 
-	// Cache the result if not active
 	if !w.active {
 		w.cached = rendered
 		w.dirty = false

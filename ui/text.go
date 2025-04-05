@@ -10,22 +10,20 @@ type Text struct {
 	cursorPos  int
 	showCursor bool
 	cursorType CursorType
-	sourceText string // Store original text to avoid reconstruction
+	sourceText string
 }
 
 func NewText(text string) *Text {
-	// Pre-allocate array for words to avoid resizing
-	// Estimate capacity based on average word length including spaces (roughly 6 chars)
+
 	estimatedWordCount := len(text)/6 + 1
 	words := make([]*Word, 0, estimatedWordCount)
 	var currentWord []rune
 
-	// Process text into words in a single pass
 	for _, r := range text {
 		if r == ' ' {
 			if len(currentWord) > 0 {
 				words = append(words, NewWord(currentWord))
-				currentWord = make([]rune, 0, 8) // Average word length ~8 chars
+				currentWord = make([]rune, 0, 8)
 			}
 			words = append(words, NewWord([]rune{' '}))
 		} else {
@@ -33,7 +31,6 @@ func NewText(text string) *Text {
 		}
 	}
 
-	// Add the last word if there is one
 	if len(currentWord) > 0 {
 		words = append(words, NewWord(currentWord))
 	}
@@ -43,10 +40,9 @@ func NewText(text string) *Text {
 		cursorPos:  0,
 		showCursor: true,
 		cursorType: UnderlineCursor,
-		sourceText: text, // Store original text
+		sourceText: text,
 	}
 
-	// Set first word as active
 	if len(t.words) > 0 {
 		t.words[0].SetActive(true)
 	}
@@ -147,10 +143,9 @@ func (t *Text) Render() string {
 	startTime := time.Now()
 	DebugLog("Text: Render started")
 
-	// Estimate the size of the final string to avoid reallocations
 	estimatedSize := 0
 	for _, word := range t.words {
-		estimatedSize += len(word.target) * 3 // Allow extra space for styling sequences
+		estimatedSize += len(word.target) * 3
 	}
 
 	var result strings.Builder
@@ -213,16 +208,13 @@ func (t *Text) Stats() (total, correct, errors int) {
 	return
 }
 
-// GetText returns the original text content
 func (t *Text) GetText() string {
-	// Return cached text instead of reconstructing it
 	if t.sourceText != "" {
 		return t.sourceText
 	}
 
-	// Fallback to reconstruction if sourceText is not available
 	var builder strings.Builder
-	builder.Grow(len(t.words) * 8) // Pre-allocate memory for efficiency
+	builder.Grow(len(t.words) * 8)
 
 	for _, word := range t.words {
 		if !word.IsSpace() {

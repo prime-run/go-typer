@@ -2,10 +2,9 @@ package ui
 
 import (
 	"fmt"
-	"time"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"time"
 )
 
 type WelcomeModel struct {
@@ -16,8 +15,6 @@ type WelcomeModel struct {
 	startTime time.Time
 	lastTick  time.Time
 }
-
-// Gradient is now defined in the shared gradient.go file
 
 func NewWelcomeModel() *WelcomeModel {
 	return &WelcomeModel{
@@ -35,7 +32,6 @@ func (m *WelcomeModel) Init() tea.Cmd {
 func (m *WelcomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case GlobalTickMsg:
-		// Handle the global tick
 		var cmd tea.Cmd
 		m.lastTick, _, cmd = HandleGlobalTick(m.lastTick, msg)
 		return m, cmd
@@ -44,7 +40,6 @@ func (m *WelcomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
 			return m, tea.Quit
 		}
-		// Any key press advances to next step
 		m.step++
 		if m.step >= 2 {
 			m.done = true
@@ -83,7 +78,7 @@ func (m *WelcomeModel) View() string {
 		description := RenderGradientText("A modern, feature-rich typing practice tool built with Go.", m.lastTick)
 		content = titleStyle.Render(title) + "\n\n" +
 			textStyle.Render(description) + "\n\n" +
-			HintStyle("Press any key to continue...")
+			HintStyle("\n\n\nPress any key to continue...")
 
 	case 1:
 		title := RenderGradientText("Getting Started", m.lastTick)
@@ -102,13 +97,12 @@ func (m *WelcomeModel) View() string {
 }
 
 func ShowWelcomeScreen() bool {
-	// Initialize settings first
 	InitSettings()
 
-	// Only show welcome screen if user hasn't seen it before
-	if CurrentSettings.HasSeenWelcome {
-		return false
-	}
+	// TODO:REMOVE BELOW COMMENT IN PROD
+	// if CurrentSettings.HasSeenWelcome {
+	// 	return false
+	// }
 
 	model := NewWelcomeModel()
 	p := tea.NewProgram(model, tea.WithAltScreen())

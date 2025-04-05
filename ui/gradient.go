@@ -1,15 +1,13 @@
 package ui
 
 import (
+	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"time"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
-// Gradient colors for animation
 var GradientColors = []string{
-	"#00ADD8", // Go blue
+	"#00ADD8", // go blue
 	"#15B5DB",
 	"#2ABEDE",
 	"#3FC6E1",
@@ -35,18 +33,14 @@ var GradientColors = []string{
 	"#15B5DB",
 }
 
-// GetGradientIndex calculates the current color index based on tick time
 func GetGradientIndex(tickTime time.Time) int {
-	// Use tickTime directly rather than calculating elapsed time from start
 	return int(tickTime.UnixNano()/int64(30*time.Millisecond)) % len(GradientColors)
 }
 
-// RenderGradientText renders text with a gradient effect
 func RenderGradientText(text string, tickTime time.Time) string {
 	var result strings.Builder
 	colorIndex := GetGradientIndex(tickTime)
 
-	// Pre-allocate for efficiency
 	result.Grow(len(text) * 3)
 
 	for _, char := range text {
@@ -57,19 +51,15 @@ func RenderGradientText(text string, tickTime time.Time) string {
 	return result.String()
 }
 
-// RenderGradientOverlay applies a gradient overlay effect to text while preserving its base style
 func RenderGradientOverlay(text string, baseStyle lipgloss.Style, tickTime time.Time) string {
 	var result strings.Builder
 	colorIndex := GetGradientIndex(tickTime)
 
-	// Pre-allocate for efficiency
 	result.Grow(len(text) * 3)
 
 	for _, char := range text {
-		// Get gradient color as overlay
 		gradientColor := lipgloss.Color(GradientColors[colorIndex])
 
-		// Create a combined style that uses the base style but adds a hint of the gradient
 		combinedStyle := baseStyle.Copy().
 			Foreground(gradientColor).
 			Bold(true)

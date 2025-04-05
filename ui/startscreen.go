@@ -2,11 +2,10 @@ package ui
 
 import (
 	"fmt"
-	"strings"
-	"time"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"strings"
+	"time"
 )
 
 const logoArt = `
@@ -111,7 +110,6 @@ func (m *StartScreenModel) Init() tea.Cmd {
 func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case GlobalTickMsg:
-		// Handle the global tick
 		var cmd tea.Cmd
 		m.lastTick, _, cmd = HandleGlobalTick(m.lastTick, msg)
 		return m, cmd
@@ -307,7 +305,6 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 		exampleContent = renderRefreshRateExample(m.refreshRate, m.lastTick)
 	}
 
-	// Create left column for settings items
 	var settingsList []string
 	for i, item := range m.settingsItems {
 		var s lipgloss.Style
@@ -343,7 +340,6 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 		settingsList = append(settingsList, s.Render(menuText))
 	}
 
-	// Create right column for the example
 	var exampleBox string
 	if m.selectedItem < len(m.settingsItems) {
 		switch m.selectedItem {
@@ -362,23 +358,21 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 		}
 	}
 
-	// Calculate column widths
-	leftWidth := 30                       // Fixed width for settings column
-	rightWidth := m.width - leftWidth - 4 // Remaining width for example box
+	leftWidth := 30
+	rightWidth := m.width - leftWidth - 4
 
-	// Style the example box
 	exampleStyle := lipgloss.NewStyle().
 		Padding(1, 2).
 		Width(rightWidth)
 
-	// Create columns
+	// create columns
 	leftColumn := lipgloss.NewStyle().
 		Width(leftWidth).
 		Render(lipgloss.JoinVertical(lipgloss.Left, settingsList...))
 
 	rightColumn := exampleStyle.Render(exampleBox)
 
-	// Join columns
+	// join them
 	content := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		leftColumn,
@@ -395,7 +389,6 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 func renderThemeExample(theme string) string {
 	var sb strings.Builder
 
-	// Define color order
 	colorOrder := []string{
 		"Help Text",
 		"Timer",
@@ -411,20 +404,17 @@ func renderThemeExample(theme string) string {
 		"Padding",
 	}
 
-	// Create color preview boxes with static colors
 	for _, name := range colorOrder {
 		color := GetColor(strings.ToLower(strings.ReplaceAll(name, " ", "_")))
 		style := lipgloss.NewStyle().
 			Foreground(color).
 			Padding(0, 1)
 
-		// Create a color box
 		colorBox := lipgloss.NewStyle().
 			Background(color).
 			Padding(0, 2).
 			Render("  ")
 
-		// Combine color name and box
 		sb.WriteString(fmt.Sprintf("%-15s %s %s\n", name, colorBox, style.Render(string(color))))
 	}
 
@@ -434,23 +424,18 @@ func renderThemeExample(theme string) string {
 func renderCursorExample(cursorType string) string {
 	var example strings.Builder
 
-	// Title with timer color
 	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
 	example.WriteString(titleStyle.Render("Cursor Style: "))
 
-	// Cursor type with text_preview color
 	cursorTypeStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
 	example.WriteString(cursorTypeStyle.Render(cursorType))
 	example.WriteString("\n\n")
 
-	// Example section
 	example.WriteString(titleStyle.Render("Example Text:\n"))
 
-	// Show example with appropriate styling
 	dimStyle := lipgloss.NewStyle().Foreground(GetColor("text_dim"))
 	example.WriteString(dimStyle.Render("quick "))
 
-	// Render "brown" with cursor on 'r'
 	example.WriteString(dimStyle.Render("b"))
 	if cursorType == "block" {
 		cursorStyle := lipgloss.NewStyle().
@@ -471,11 +456,9 @@ func renderCursorExample(cursorType string) string {
 func renderGameModeExample(gameMode string) string {
 	var example strings.Builder
 
-	// Title with timer color
 	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
 	example.WriteString(titleStyle.Render("Game Mode: "))
 
-	// Mode name with text_preview color
 	modeStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
 	if gameMode == "normal" {
 		example.WriteString(modeStyle.Render("Normal (With Punctuation)"))
@@ -484,10 +467,8 @@ func renderGameModeExample(gameMode string) string {
 	}
 	example.WriteString("\n\n")
 
-	// Example section
 	example.WriteString(titleStyle.Render("Example:\n"))
 
-	// Show example with appropriate styling
 	if gameMode == "normal" {
 		example.WriteString(TextToTypeStyle.Render("The quick brown fox jumps."))
 	} else {
@@ -500,11 +481,9 @@ func renderGameModeExample(gameMode string) string {
 func renderUseNumbersExample(useNumbers bool) string {
 	var example strings.Builder
 
-	// Title with timer color
 	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
 	example.WriteString(titleStyle.Render("Use Numbers: "))
 
-	// Yes/No with text_preview color
 	valueStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
 	if useNumbers {
 		example.WriteString(valueStyle.Render("Yes"))
@@ -513,10 +492,8 @@ func renderUseNumbersExample(useNumbers bool) string {
 	}
 	example.WriteString("\n\n")
 
-	// Example section
 	example.WriteString(titleStyle.Render("Example:\n"))
 
-	// Show example with appropriate styling
 	if useNumbers {
 		example.WriteString(TextToTypeStyle.Render("quick brown fox jumps over 5 lazy dogs"))
 	} else {
@@ -529,19 +506,15 @@ func renderUseNumbersExample(useNumbers bool) string {
 func renderTextLengthExample(length string) string {
 	var example strings.Builder
 
-	// Title with timer color
 	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
 	example.WriteString(titleStyle.Render("Text Length: "))
 
-	// Length value with text_preview color
 	valueStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
 	example.WriteString(valueStyle.Render(length))
 	example.WriteString("\n\n")
 
-	// Example section
 	example.WriteString(titleStyle.Render("Quotes to fetch:\n"))
 
-	// Show number of quotes based on length
 	textCount := map[string]int{
 		TextLengthShort:    1,
 		TextLengthMedium:   2,
@@ -553,8 +526,7 @@ func renderTextLengthExample(length string) string {
 	example.WriteString(fmt.Sprintf("\nWill fetch and combine %d quote(s)", count))
 	example.WriteString("\nEstimated word count: ")
 
-	// Estimated word count
-	wordCount := count * 30 // Assuming average of 30 words per quote
+	wordCount := count * 30
 	example.WriteString(valueStyle.Render(fmt.Sprintf("%d words", wordCount)))
 
 	return example.String()
@@ -574,7 +546,6 @@ func renderRefreshRateExample(rate int, tickTime time.Time) string {
 	sb.WriteString(valueStyle.Render(fmt.Sprintf("%d FPS", rate)))
 	sb.WriteString("\n\n")
 
-	// Description
 	descStyle := lipgloss.NewStyle().
 		Foreground(GetColor("text_dim"))
 
@@ -591,10 +562,8 @@ func renderRefreshRateExample(rate int, tickTime time.Time) string {
 			"Lower values use less CPU/battery"))
 	sb.WriteString("\n\n")
 
-	// Show a refresh rate visualization with animated spinner
 	var spinner string
 	frames := []string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"}
-	// Use the tick time for animation instead of direct time calculation
 	index := int(tickTime.UnixNano()/int64(time.Second/time.Duration(rate))) % len(frames)
 	spinner = frames[index]
 
@@ -617,7 +586,6 @@ func renderAnimatedAscii(logoArt string, tickTime time.Time) string {
 		"#000080", // Navy blue
 	}
 
-	// Use direct tick time instead of elapsed time since start
 	startIndex := int(tickTime.UnixNano()/int64(100*time.Millisecond)) % len(colors)
 
 	lines := strings.Split(logoArt, "\n")
@@ -746,8 +714,7 @@ func cycleTextLength(m *StartScreenModel) tea.Cmd {
 }
 
 func cycleRefreshRate(m *StartScreenModel) tea.Cmd {
-	// Common refresh rates: 5, 10, 15, 30, 60
-	rates := []int{5, 10, 15, 30, 60}
+	rates := []int{1, 5, 10, 15, 30, 60}
 
 	currentIndex := -1
 	for i, r := range rates {
@@ -757,7 +724,6 @@ func cycleRefreshRate(m *StartScreenModel) tea.Cmd {
 		}
 	}
 
-	// If not found or at end, go to beginning
 	currentIndex = (currentIndex + 1) % len(rates)
 	m.refreshRate = rates[currentIndex]
 
@@ -770,7 +736,6 @@ type StartGameMsg struct {
 }
 
 func RunStartScreen() {
-	// Show welcome screen first
 	ShowWelcomeScreen()
 
 	p := tea.NewProgram(NewStartScreenModel(), tea.WithAltScreen())
