@@ -9,17 +9,17 @@ import (
 )
 
 const logoArt = `
-   ________    _________                     
-  / ____/ /   / ____/   |  ____  ___  _____  
- / / __/ /   / __/ / /| | / __ \/ _ \/ ___/  
-/ /_/ / /___/ /___/ ___ |/ /_/ /  __/ /      
-\____/_____/_____/_/  |_/ .___/\___/_/       
-                       /_/                    
- _______  ____________  ____    __            
-/_  __\ \/ /  _/ __ \ \/ / /   / /            
- / /   \  // // /_/ /\  / /   / /             
-/ /    / // // ____/ / / /___/ /___           
-\____/_/___/_/_/     \/_____/_____/           
+   █████████     ███████       ███████████                                        
+  ███░░░░░███  ███░░░░░███    ░█░░░███░░░█                                        
+ ███     ░░░  ███     ░░███   ░   ░███  ░  █████ ████ ████████   ██████  ████████ 
+░███         ░███      ░███       ░███    ░░███ ░███ ░░███░░███ ███░░███░░███░░███
+░███    █████░███      ░███       ░███     ░███ ░███  ░███ ░███░███████  ░███ ░░░ 
+░░███  ░░███ ░░███     ███        ░███     ░███ ░███  ░███ ░███░███░░░   ░███     
+ ░░█████████  ░░░███████░         █████    ░░███████  ░███████ ░░██████  █████    
+  ░░░░░░░░░     ░░░░░░░          ░░░░░      ░░░░░███  ░███░░░   ░░░░░░  ░░░░░     
+                                            ███ ░███  ░███                        
+                                           ░░██████   █████                       
+                                            ░░░░░░   ░░░░░                        
 `
 
 const (
@@ -197,21 +197,38 @@ func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *StartScreenModel) View() string {
 	var menuContent string
 
-	logoStyle := lipgloss.NewStyle().
-		Foreground(GetColor("border")).
-		Bold(true)
-
-	logo := logoStyle.Render(logoArt)
-
 	if m.menuState == MenuMain {
-		menuContent = m.renderMainMenu()
+		// Create gradient colors from light blue to dark blue
+		colors := []string{
+			"#87CEEB", // Sky blue
+			"#4682B4", // Steel blue
+			"#1E90FF", // Dodger blue
+			"#0000CD", // Medium blue
+			"#000080", // Navy blue
+		}
+
+		// Apply gradient to each line
+		var logo strings.Builder
+		lines := strings.Split(logoArt, "\n")
+		for i, line := range lines {
+			if line == "" {
+				logo.WriteString("\n")
+				continue
+			}
+			colorIndex := i % len(colors)
+			style := lipgloss.NewStyle().Foreground(lipgloss.Color(colors[colorIndex]))
+			logo.WriteString(style.Render(line))
+			logo.WriteString("\n")
+		}
+
+		menuContent = fmt.Sprintf("%s\n%s", logo.String(), m.renderMainMenu())
 	} else if m.menuState == MenuSettings {
 		menuContent = m.renderSettingsMenu()
 	}
 
 	footer := "\n" + HelpStyle("↑/↓: Navigate • Enter: Select • Esc: Back • q: Quit")
 
-	content := fmt.Sprintf("%s\n%s\n%s", logo, menuContent, footer)
+	content := fmt.Sprintf("%s\n%s", menuContent, footer)
 
 	if m.width > 0 && m.height > 0 {
 		return lipgloss.Place(m.width, m.height,
@@ -272,11 +289,14 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 	titleStyle := lipgloss.NewStyle().
 		Foreground(GetColor("timer")).
 		Bold(true).
-		Margin(1, 0, 2, 0)
+		Margin(1, 0, 2, 0).
+		PaddingLeft(2)
 
 	sb.WriteString(titleStyle.Render("Settings"))
 	sb.WriteString("\n\n")
 
+	// Create left column for settings items
+	var settingsList []string
 	for i, item := range m.settingsItems {
 		var s lipgloss.Style
 
@@ -304,133 +324,185 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 			menuText = fmt.Sprintf("%-15s: %v", item.title, m.useNumbers)
 		}
 
-		sb.WriteString(s.Render(menuText))
-		sb.WriteString("\n")
+		settingsList = append(settingsList, s.Render(menuText))
+	}
 
-		if i == m.selectedItem {
-			sb.WriteString("\n")
-
-			if i == 0 {
-				exampleBox := renderThemeExample(m.selectedTheme)
-				sb.WriteString(exampleBox)
-			} else if i == 1 {
-				exampleBox := renderCursorExample(m.cursorType)
-				sb.WriteString(exampleBox)
-			} else if i == 2 {
-				exampleBox := renderGameModeExample(m.gameMode)
-				sb.WriteString(exampleBox)
-			} else if i == 3 {
-				exampleBox := renderUseNumbersExample(m.useNumbers)
-				sb.WriteString(exampleBox)
-			}
-
-			sb.WriteString("\n")
+	// Create right column for the example
+	var exampleBox string
+	if m.selectedItem < len(m.settingsItems) {
+		switch m.selectedItem {
+		case 0:
+			exampleBox = renderThemeExample(m.selectedTheme)
+		case 1:
+			exampleBox = renderCursorExample(m.cursorType)
+		case 2:
+			exampleBox = renderGameModeExample(m.gameMode)
+		case 3:
+			exampleBox = renderUseNumbersExample(m.useNumbers)
 		}
+	}
 
-		sb.WriteString("\n")
+	// Calculate column widths
+	leftWidth := 30                       // Fixed width for settings column
+	rightWidth := m.width - leftWidth - 4 // Remaining width for example box
+
+	// Style the example box
+	exampleStyle := lipgloss.NewStyle().
+		Padding(1, 2).
+		Width(rightWidth)
+
+	// Create columns
+	leftColumn := lipgloss.NewStyle().
+		Width(leftWidth).
+		Render(lipgloss.JoinVertical(lipgloss.Left, settingsList...))
+
+	rightColumn := exampleStyle.Render(exampleBox)
+
+	// Join columns
+	content := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		leftColumn,
+		"  ",
+		rightColumn,
+	)
+
+	sb.WriteString(content)
+	sb.WriteString("\n\n")
+
+	return sb.String()
+}
+
+func renderThemeExample(theme string) string {
+	var sb strings.Builder
+
+	// Get the current theme colors
+	colors := map[string]lipgloss.Color{
+		"Help Text":    GetColor("help_text"),
+		"Timer":        GetColor("timer"),
+		"Border":       GetColor("border"),
+		"Text Dim":     GetColor("text_dim"),
+		"Text Preview": GetColor("text_preview"),
+		"Text Correct": GetColor("text_correct"),
+		"Text Error":   GetColor("text_error"),
+		"Text Partial": GetColor("text_partial_error"),
+		"Cursor FG":    GetColor("cursor_fg"),
+		"Cursor BG":    GetColor("cursor_bg"),
+		"Cursor Under": GetColor("cursor_underline"),
+		"Padding":      GetColor("padding"),
+	}
+
+	// Create color preview boxes
+	for name, color := range colors {
+		style := lipgloss.NewStyle().
+			Foreground(color).
+			Padding(0, 1)
+
+		// Create a color box
+		colorBox := lipgloss.NewStyle().
+			Background(color).
+			Padding(0, 2).
+			Render("  ")
+
+		// Combine color name and box
+		sb.WriteString(fmt.Sprintf("%-15s %s %s\n", name, colorBox, style.Render(string(color))))
 	}
 
 	return sb.String()
 }
 
-func renderThemeExample(themeName string) string {
-	exampleStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(GetColor("border")).
-		Padding(1, 2).
-		Margin(0, 0, 0, 4)
-
+func renderCursorExample(cursorType string) string {
 	var example strings.Builder
 
-	example.WriteString("Text Preview: ")
-	example.WriteString(DimStyle.Render("dim "))
-	example.WriteString(InputStyle.Render("correct "))
-	example.WriteString(ErrorStyle.Render("error"))
+	// Title with timer color
+	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	example.WriteString(titleStyle.Render("Cursor Style: "))
+
+	// Cursor type with text_preview color
+	cursorTypeStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
+	example.WriteString(cursorTypeStyle.Render(cursorType))
 	example.WriteString("\n\n")
 
-	example.WriteString("Word with errors: ")
-	example.WriteString(InputStyle.Render("co"))
-	example.WriteString(ErrorStyle.Render("d"))
-	example.WriteString(PartialErrorStyle.Render("e"))
-	example.WriteString(DimStyle.Render("r"))
+	// Example section
+	example.WriteString(titleStyle.Render("Example Text:\n"))
 
-	return exampleStyle.Render(example.String())
-}
+	// Show example with appropriate styling
+	dimStyle := lipgloss.NewStyle().Foreground(GetColor("text_dim"))
+	example.WriteString(dimStyle.Render("quick "))
 
-func renderCursorExample(cursorType string) string {
-	exampleStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(GetColor("border")).
-		Padding(1, 2).
-		Margin(0, 0, 0, 4)
-
-	var example strings.Builder
-
-	var cursor *Cursor
+	// Render "brown" with cursor on 'r'
+	example.WriteString(dimStyle.Render("b"))
 	if cursorType == "block" {
-		cursor = NewCursor(BlockCursor)
+		cursorStyle := lipgloss.NewStyle().
+			Foreground(GetColor("cursor_fg")).
+			Background(GetColor("cursor_bg"))
+		example.WriteString(cursorStyle.Render("r"))
 	} else {
-		cursor = NewCursor(UnderlineCursor)
+		cursorStyle := lipgloss.NewStyle().
+			Foreground(GetColor("cursor_underline")).
+			Underline(true)
+		example.WriteString(cursorStyle.Render("r"))
 	}
+	example.WriteString(dimStyle.Render("own"))
 
-	example.WriteString("Cursor appearance: ")
-	example.WriteString(cursor.Render('A'))
-	example.WriteString(InputStyle.Render("BC"))
-
-	return exampleStyle.Render(example.String())
+	return example.String()
 }
 
 func renderGameModeExample(gameMode string) string {
-	exampleStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(GetColor("border")).
-		Padding(1, 2).
-		Margin(0, 0, 0, 4)
-
 	var example strings.Builder
 
-	example.WriteString("Game Mode: ")
+	// Title with timer color
+	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	example.WriteString(titleStyle.Render("Game Mode: "))
 
+	// Mode name with text_preview color
+	modeStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
 	if gameMode == "normal" {
-		example.WriteString("Normal (With Punctuation)")
-		example.WriteString("\n\n")
-		example.WriteString("Example: ")
+		example.WriteString(modeStyle.Render("Normal (With Punctuation)"))
+	} else {
+		example.WriteString(modeStyle.Render("Simple (No Punctuation)"))
+	}
+	example.WriteString("\n\n")
+
+	// Example section
+	example.WriteString(titleStyle.Render("Example:\n"))
+
+	// Show example with appropriate styling
+	if gameMode == "normal" {
 		example.WriteString(TextToTypeStyle.Render("The quick brown fox jumps."))
 	} else {
-		example.WriteString("Simple (No Punctuation)")
-		example.WriteString("\n\n")
-		example.WriteString("Example: ")
 		example.WriteString(TextToTypeStyle.Render("the quick brown fox jumps"))
 	}
 
-	return exampleStyle.Render(example.String())
+	return example.String()
 }
 
-// NOTE: render a use numbers example
 func renderUseNumbersExample(useNumbers bool) string {
-	exampleStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(GetColor("border")).
-		Padding(1, 2).
-		Margin(0, 0, 0, 4)
-
 	var example strings.Builder
 
-	example.WriteString("Use Numbers: ")
+	// Title with timer color
+	titleStyle := lipgloss.NewStyle().Foreground(GetColor("timer")).Bold(true)
+	example.WriteString(titleStyle.Render("Use Numbers: "))
 
+	// Yes/No with text_preview color
+	valueStyle := lipgloss.NewStyle().Foreground(GetColor("text_preview"))
 	if useNumbers {
-		example.WriteString("Yes")
-		example.WriteString("\n\n")
-		example.WriteString("Example: ")
+		example.WriteString(valueStyle.Render("Yes"))
+	} else {
+		example.WriteString(valueStyle.Render("No"))
+	}
+	example.WriteString("\n\n")
+
+	// Example section
+	example.WriteString(titleStyle.Render("Example:\n"))
+
+	// Show example with appropriate styling
+	if useNumbers {
 		example.WriteString(TextToTypeStyle.Render("quick brown fox jumps over 5 lazy dogs"))
 	} else {
-		example.WriteString("No")
-		example.WriteString("\n\n")
-		example.WriteString("Example: ")
 		example.WriteString(TextToTypeStyle.Render("quick brown fox jumps over lazy dogs"))
 	}
 
-	return exampleStyle.Render(example.String())
+	return example.String()
 }
 
 func startGame(m *StartScreenModel) tea.Cmd {

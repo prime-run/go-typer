@@ -53,7 +53,6 @@ func GetSettingsFilePath() (string, error) {
 }
 
 func LoadSettings() error {
-
 	CurrentSettings = DefaultSettings
 
 	settingsPath, err := GetSettingsFilePath()
@@ -64,7 +63,6 @@ func LoadSettings() error {
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-
 			return SaveSettings()
 		}
 		return fmt.Errorf("error reading settings file: %w", err)
@@ -120,7 +118,6 @@ func UpdateSettings(settings UserSettings) error {
 }
 
 func ApplySettings() {
-
 	if CurrentSettings.ThemeName != "" {
 		LoadTheme(CurrentSettings.ThemeName)
 		UpdateStyles()

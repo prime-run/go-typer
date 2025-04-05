@@ -25,8 +25,10 @@ type LoadingModel struct {
 
 func NewLoadingModel() LoadingModel {
 	return LoadingModel{
-		progress: progress.New(progress.WithDefaultGradient()),
-		done:     false,
+		progress: progress.New(
+			progress.WithGradient("#00ADD8", "#00FFFF"), // Go blue to Cyan
+		),
+		done: false,
 	}
 }
 
