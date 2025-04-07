@@ -75,50 +75,23 @@ func (m *LoadingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *LoadingModel) View() string {
 	spinnerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00ADD8"))
 
-	pad := strings.Repeat(" ", 25)
-
 	progressBar := m.progressBar.ViewAs(m.progress)
-
 	spinnerDisplay := spinnerStyle.Render(m.spinner.View())
 
-	content := lipgloss.NewStyle().
-		Width(m.width * 3 / 4).
-		Align(lipgloss.Center).
-		Render(
-			"\n\n" +
-				pad + spinnerDisplay + "\n\n" +
-				pad + "Loading text..." + "\n\n" +
-				pad + progressBar + "\n\n" +
-				pad + HelpStyle("Fetching text from server..."))
+	centeredSpinner := lipgloss.NewStyle().Width(m.width * 3 / 4).Align(lipgloss.Center).Render(spinnerDisplay)
+	centeredLoadingText := lipgloss.NewStyle().Width(m.width * 3 / 4).Align(lipgloss.Center).Render("Loading text...")
+	centeredProgressBar := lipgloss.NewStyle().Width(m.width * 3 / 4).Align(lipgloss.Center).Render(progressBar)
+	centeredHelp := lipgloss.NewStyle().Width(m.width * 3 / 4).Align(lipgloss.Center).Render(HelpStyle("Fetching random text from https://zenquotes.io/api/random ..."))
+
+	content := "\n\n" +
+		centeredSpinner + "\n\n" +
+		centeredLoadingText + "\n\n" +
+		centeredProgressBar + "\n\n" +
+		centeredHelp
 
 	return lipgloss.Place(m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
 		content)
-}
-
-func renderProgressBar(progress float64, width int) string {
-	if progress < 0 {
-		progress = 0
-	} else if progress > 1 {
-		progress = 1
-	}
-
-	filled := int(progress * float64(width))
-	if filled > width {
-		filled = width
-	}
-
-	bar := "["
-	for i := 0; i < width; i++ {
-		if i < filled {
-			bar += "="
-		} else {
-			bar += " "
-		}
-	}
-	bar += "]"
-
-	return bar
 }
 
 func fetchTextCmd() tea.Cmd {
