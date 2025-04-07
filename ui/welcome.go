@@ -101,9 +101,9 @@ func ShowWelcomeScreen() bool {
 	InitSettings()
 
 	// TODO:REMOVE BELOW COMMENT IN PROD
-	// if CurrentSettings.HasSeenWelcome {
-	// 	return false
-	// }
+	if CurrentSettings.HasSeenWelcome {
+		return false
+	}
 
 	model := NewWelcomeModel()
 	p := tea.NewProgram(model, tea.WithAltScreen())
