@@ -68,6 +68,7 @@ Choose the installation method that suits you best:
 Download the latest pre-built binaries for your operating system from the [Releases](https://github.com/prime-run/go-typer/releases) page. Here's a simplified way to download and install (rootless):
 
 **Linux (x86\_64):**
+
     ```bash
     wget https://github.com/prime-run/go-typer/releases/download/v1.0.1/go-typer_1.0.1_linux_amd64.tar.gz
     mkdir -p ~/.local/bin
@@ -88,7 +89,6 @@ Download the latest pre-built binaries for your operating system from the [Relea
     wget https://github.com/prime-run/go-typer/releases/download/v1.0.1/go-typer_1.0.1_darwin_arm64.tar.gz
     mkdir -p ~/.local/bin
     tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
-    rm go-typer_*.tar.gz
     ```
 
 After downloading and extracting, ensure that `~/.local/bin` is in your system's `PATH` environment variable. You can usually do this by adding the following line to your shell's configuration file (e.g., `.bashrc`, `.zshrc`):
