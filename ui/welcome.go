@@ -83,7 +83,7 @@ func (m *WelcomeModel) View() string {
 	case 1:
 		title := RenderGradientText("Please keep in mind:", m.lastTick)
 		features := RenderGradientText("• This was a passion project, built in a few-days, so if you found it buggy, check for updates hopefully they are fixed :) \n"+
-			"\n• I tried to mimic the monkey type styles such as <Space> jumps to  the begining of next word and ...\n"+
+			"\n• I tried to mimic the monkey type styles such as <Space> jumps to  the beginning of next word and ...\n"+
 			"\n• I'd be grateful to hear your feedback on github.\n https://github.com/prime-run/go-typer\n"+
 			"\n• to see enjoy the TUI you pprobably need a nerd-font and a modern shell and that can't be fixed via docker :)\n"+
 			"\nImma head out out now, I hope you enjoy it, gl hf", m.lastTick)
