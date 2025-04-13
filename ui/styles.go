@@ -57,6 +57,23 @@ func UpdateStyles() {
 		Foreground(GetColor("cursor_underline")).
 		Underline(true)
 
+	SettingsListStyle = lipgloss.NewStyle().
+		Width(MaxWidth/3 - 4).
+		MarginLeft(2).
+		MarginRight(2)
+
+	SettingsDetailsStyle = lipgloss.NewStyle().
+		Width(MaxWidth / 2).
+		MarginLeft(2)
+
+	SettingsTitleStyle = lipgloss.NewStyle().
+		Background(lipgloss.Color("62")).
+		Foreground(lipgloss.Color("0")).
+		Padding(0, 1)
+
+	SettingsHelpStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241"))
+
 	EndGameTitleStyle = lipgloss.NewStyle().
 		Foreground(GetColor("text_correct")).
 		Bold(true).
@@ -109,9 +126,10 @@ var DimStyle lipgloss.Style
 var TextContainerStyle lipgloss.Style
 var BlockCursorStyle lipgloss.Style
 var UnderlineCursorStyle lipgloss.Style
-
-// endgame screen styles
-// .
+var SettingsListStyle lipgloss.Style
+var SettingsDetailsStyle lipgloss.Style
+var SettingsTitleStyle lipgloss.Style
+var SettingsHelpStyle lipgloss.Style
 var EndGameTitleStyle lipgloss.Style
 var EndGameStatsBoxStyle lipgloss.Style
 var EndGameWpmStyle lipgloss.Style

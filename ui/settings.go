@@ -3,6 +3,9 @@ package ui
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"os"
 	"path/filepath"
 )
@@ -157,4 +160,233 @@ func InitSettings() {
 		CurrentSettings = DefaultSettings
 		ApplySettings()
 	}
+}
+
+type SettingsItem struct {
+	title    string
+	options  []string
+	details  string
+	selected int
+	expanded bool
+	key      string
+}
+
+func (i SettingsItem) Title() string {
+	arrow := "→"
+	if i.expanded {
+		arrow = "↓"
+	}
+	return fmt.Sprintf("%s %s", arrow, i.title)
+}
+
+func (i SettingsItem) Description() string {
+	return fmt.Sprintf("%s: %s", i.options[i.selected], i.details)
+}
+
+func (i SettingsItem) FilterValue() string { return i.title }
+
+type SettingsModel struct {
+	list          list.Model
+	height, width int
+	settings      UserSettings
+}
+
+func createSettingsItems(settings UserSettings) []list.Item {
+	themeOptions := []string{"default", "dark", "light"}
+	themeSelected := 0
+	for i, opt := range themeOptions {
+		if opt == settings.ThemeName {
+			themeSelected = i
+			break
+		}
+	}
+
+	cursorOptions := []string{"block", "underline"}
+	cursorSelected := 0
+	for i, opt := range cursorOptions {
+		if opt == settings.CursorType {
+			cursorSelected = i
+			break
+		}
+	}
+
+	gameModeOptions := []string{GameModeNormal, GameModeSimple}
+	gameModeSelected := 0
+	for i, opt := range gameModeOptions {
+		if opt == settings.GameMode {
+			gameModeSelected = i
+			break
+		}
+	}
+
+	textLengthOptions := []string{TextLengthShort, TextLengthMedium, TextLengthLong, TextLengthVeryLong}
+	textLengthSelected := 0
+	for i, opt := range textLengthOptions {
+		if opt == settings.TextLength {
+			textLengthSelected = i
+			break
+		}
+	}
+
+	refreshRateOptions := []string{"5", "10", "15", "20", "30"}
+	refreshRateSelected := 0
+	for i, opt := range refreshRateOptions {
+		if opt == fmt.Sprintf("%d", settings.RefreshRate) {
+			refreshRateSelected = i
+			break
+		}
+	}
+
+	return []list.Item{
+		&SettingsItem{
+			title:    "Theme",
+			options:  themeOptions,
+			details:  "Select your preferred theme",
+			selected: themeSelected,
+			key:      "theme",
+		},
+		&SettingsItem{
+			title:    "Cursor Type",
+			options:  cursorOptions,
+			details:  "Choose cursor appearance",
+			selected: cursorSelected,
+			key:      "cursor",
+		},
+		&SettingsItem{
+			title:    "Game Mode",
+			options:  gameModeOptions,
+			details:  "Select game difficulty mode",
+			selected: gameModeSelected,
+			key:      "game_mode",
+		},
+		&SettingsItem{
+			title:    "Text Length",
+			options:  textLengthOptions,
+			details:  "Choose text length for typing",
+			selected: textLengthSelected,
+			key:      "text_length",
+		},
+		&SettingsItem{
+			title:    "Refresh Rate",
+			options:  refreshRateOptions,
+			details:  "Set UI refresh rate (FPS)",
+			selected: refreshRateSelected,
+			key:      "refresh_rate",
+		},
+	}
+}
+
+func initialSettingsModel() SettingsModel {
+	settings := CurrentSettings
+	items := createSettingsItems(settings)
+
+	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
+	l.SetShowHelp(false)
+	l.SetFilteringEnabled(false)
+	l.SetShowStatusBar(false)
+	l.Title = "Settings"
+	l.Styles.Title = SettingsTitleStyle
+
+	return SettingsModel{
+		list:     l,
+		settings: settings,
+	}
+}
+
+func (m SettingsModel) Init() tea.Cmd { return nil }
+
+func (m SettingsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, msg.Height
+		m.list.SetSize(m.width/3, m.height/2)
+
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "ctrl+c":
+			return m, tea.Quit
+		case "enter":
+			if i, ok := m.list.SelectedItem().(*SettingsItem); ok {
+				if !i.expanded {
+					i.expanded = true
+				} else {
+					i.selected = (i.selected + 1) % len(i.options)
+					switch i.key {
+					case "theme":
+						m.settings.ThemeName = i.options[i.selected]
+					case "cursor":
+						m.settings.CursorType = i.options[i.selected]
+					case "game_mode":
+						m.settings.GameMode = i.options[i.selected]
+					case "text_length":
+						m.settings.TextLength = i.options[i.selected]
+					case "refresh_rate":
+						fmt.Sscanf(i.options[i.selected], "%d", &m.settings.RefreshRate)
+					}
+					UpdateSettings(m.settings)
+				}
+			}
+		case "esc":
+			if i, ok := m.list.SelectedItem().(*SettingsItem); ok {
+				i.expanded = false
+			}
+		}
+	}
+
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
+}
+
+func (m SettingsModel) View() string {
+	if m.width == 0 {
+		return "Loading..."
+	}
+
+	listView := SettingsListStyle.Render(m.list.View())
+
+	details := "Select an item to view details"
+	if i, ok := m.list.SelectedItem().(*SettingsItem); ok {
+		if i.expanded {
+			details = fmt.Sprintf("%s\n\nCurrent: %s\n\nOptions:\n",
+				i.details,
+				i.options[i.selected],
+			)
+			for idx, opt := range i.options {
+				bullet := "•"
+				if idx == i.selected {
+					bullet = ">"
+				}
+				details += fmt.Sprintf("%s %s\n", bullet, opt)
+			}
+		} else {
+			details = i.details
+		}
+	}
+
+	detailsView := SettingsDetailsStyle.Render(details)
+
+	content := lipgloss.Place(
+		m.width,
+		m.height-1,
+		lipgloss.Center,
+		lipgloss.Center,
+		lipgloss.JoinHorizontal(lipgloss.Top, listView, detailsView),
+	)
+
+	help := lipgloss.PlaceHorizontal(
+		m.width,
+		lipgloss.Center,
+		SettingsHelpStyle.Render("↑/↓: Navigate • Enter: Select • Esc: Back • q: Quit"),
+	)
+
+	return lipgloss.JoinVertical(lipgloss.Bottom, content, help)
+}
+
+func ShowSettings() error {
+	p := tea.NewProgram(initialSettingsModel(), tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		return fmt.Errorf("error running settings program: %w", err)
+	}
+	return nil
 }

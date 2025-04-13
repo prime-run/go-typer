@@ -61,11 +61,20 @@ func GetThemePath(themeName string) string {
 		return themeName
 	}
 
-	return filepath.Join("colorschemes", themeName+".yml")
+	configDir, err := GetConfigDir()
+	if err != nil {
+		return filepath.Join("colorschemes", themeName+".yml")
+	}
+
+	colorschemesDir := filepath.Join(configDir, "colorschemes")
+	if err := os.MkdirAll(colorschemesDir, 0755); err != nil {
+		return filepath.Join("colorschemes", themeName+".yml")
+	}
+
+	return filepath.Join(colorschemesDir, themeName+".yml")
 }
 
 func LoadTheme(themeNameOrPath string) error {
-
 	CurrentTheme = DefaultTheme
 
 	if strings.TrimSpace(themeNameOrPath) == "" {
@@ -76,21 +85,16 @@ func LoadTheme(themeNameOrPath string) error {
 
 	data, err := os.ReadFile(themePath)
 	if err != nil {
-
 		if os.IsNotExist(err) {
-
-			if !strings.HasPrefix(themePath, filepath.Join("colorschemes", "")) {
-				return fmt.Errorf("theme file not found: %s", themePath)
-			}
-
 			themeName := filepath.Base(themePath)
 			themeName = strings.TrimSuffix(themeName, ".yml")
 			if !isValidThemeName(themeName) {
 				return fmt.Errorf("invalid theme name: %s", themeName)
 			}
 
-			if err := os.MkdirAll("colorschemes", 0755); err != nil {
-				return fmt.Errorf("error creating colorschemes directory: %w", err)
+			themeDir := filepath.Dir(themePath)
+			if err := os.MkdirAll(themeDir, 0755); err != nil {
+				return fmt.Errorf("error creating theme directory: %w", err)
 			}
 
 			yamlData, err := yaml.Marshal(DefaultTheme)
@@ -174,12 +178,27 @@ func GetColor(colorName string) lipgloss.Color {
 func ListAvailableThemes() []string {
 	themes := []string{ThemeDefault, ThemeDark, ThemeMonochrome}
 
+	configDir, err := GetConfigDir()
+	if err == nil {
+		colorschemesDir := filepath.Join(configDir, "colorschemes")
+		files, err := os.ReadDir(colorschemesDir)
+		if err == nil {
+			for _, file := range files {
+				if !file.IsDir() && strings.HasSuffix(file.Name(), ".yml") {
+					themeName := strings.TrimSuffix(file.Name(), ".yml")
+					if themeName != ThemeDefault && themeName != ThemeDark && themeName != ThemeMonochrome {
+						themes = append(themes, themeName)
+					}
+				}
+			}
+		}
+	}
+
 	files, err := os.ReadDir("colorschemes")
 	if err == nil {
 		for _, file := range files {
 			if !file.IsDir() && strings.HasSuffix(file.Name(), ".yml") {
 				themeName := strings.TrimSuffix(file.Name(), ".yml")
-
 				if themeName != ThemeDefault && themeName != ThemeDark && themeName != ThemeMonochrome {
 					themes = append(themes, themeName)
 				}
@@ -191,9 +210,84 @@ func ListAvailableThemes() []string {
 }
 
 func InitTheme() {
+	ensureDefaultThemesExist()
+
 	themeFile := GetThemePath(ThemeDefault)
 	if err := LoadTheme(themeFile); err != nil {
 		fmt.Printf("Warning: Could not load theme file: %v\n", err)
 		fmt.Println("Using default theme")
+	}
+}
+
+func ensureDefaultThemesExist() {
+	defaultThemes := map[string]ThemeColors{
+		ThemeDefault: DefaultTheme,
+		ThemeDark: {
+			HelpText: "#888888",
+			Timer:    "#A177FF",
+			Border:   "#5661B3",
+
+			TextDim:          "#444444",
+			TextPreview:      "#8892BF",
+			TextCorrect:      "#36D399",
+			TextError:        "#F87272",
+			TextPartialError: "#FBBD23",
+
+			CursorFg:        "#222222",
+			CursorBg:        "#7B93DB",
+			CursorUnderline: "#7B93DB",
+
+			Padding: "#666666",
+		},
+		ThemeMonochrome: {
+			HelpText: "#AAAAAA",
+			Timer:    "#FFFFFF",
+			Border:   "#DDDDDD",
+
+			TextDim:          "#777777",
+			TextPreview:      "#DDDDDD",
+			TextCorrect:      "#FFFFFF",
+			TextError:        "#444444",
+			TextPartialError: "#BBBBBB",
+
+			CursorFg:        "#000000",
+			CursorBg:        "#FFFFFF",
+			CursorUnderline: "#FFFFFF",
+
+			Padding: "#999999",
+		},
+	}
+
+	configDir, err := GetConfigDir()
+	if err != nil {
+		fmt.Printf("Warning: Could not get config directory: %v\n", err)
+		return
+	}
+
+	colorschemesDir := filepath.Join(configDir, "colorschemes")
+	if err := os.MkdirAll(colorschemesDir, 0755); err != nil {
+		fmt.Printf("Warning: Could not create colorschemes directory: %v\n", err)
+		return
+	}
+
+	for themeName, colors := range defaultThemes {
+		themePath := filepath.Join(colorschemesDir, themeName+".yml")
+
+		if _, err := os.Stat(themePath); err == nil {
+			continue
+		}
+
+		yamlData, err := yaml.Marshal(colors)
+		if err != nil {
+			fmt.Printf("Warning: Could not marshal %s theme: %v\n", themeName, err)
+			continue
+		}
+
+		if err := os.WriteFile(themePath, yamlData, 0644); err != nil {
+			fmt.Printf("Warning: Could not create %s theme file: %v\n", themeName, err)
+			continue
+		}
+
+		fmt.Printf("Created %s theme file at %s\n", themeName, themePath)
 	}
 }
