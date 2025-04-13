@@ -67,25 +67,25 @@ Download the latest pre-built binaries for your operating system from the [Relea
 **Linux (x86_64):**
 
 ```bash
-    wget https://github.com/prime-run/go-typer/releases/download/v1.0.1/go-typer_1.0.1_linux_amd64.tar.gz
-    mkdir -p ~/.local/bin
-    tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
+wget https://github.com/prime-run/go-typer/releases/download/v1.0.2/go-typer_1.0.2_linux_x86_64.tar.gz
+mkdir -p ~/.local/bin
+tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
 ```
 
 **macOS (Intel x86_64):**
 
 ```bash
-    wget https://github.com/prime-run/go-typer/releases/download/v1.0.1/go-typer_1.0.1_darwin_amd64.tar.gz
-    mkdir -p ~/.local/bin
-    tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
+wget https://github.com/prime-run/go-typer/releases/download/v1.0.2/go-typer_1.0.2_macOS_intel.tar.gz
+mkdir -p ~/.local/bin
+tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
 ```
 
 **macOS (Apple Silicon arm64):**
 
 ```bash
-    wget https://github.com/prime-run/go-typer/releases/download/v1.0.1/go-typer_1.0.1_darwin_arm64.tar.gz
-    mkdir -p ~/.local/bin
-    tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
+wget https://github.com/prime-run/go-typer/releases/download/v1.0.2/go-typer_1.0.2_macOS_apple-silicon.tar.gz
+mkdir -p ~/.local/bin
+tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
 ```
 
 After downloading and extracting, ensure that `~/.local/bin` is in your system's `PATH` environment variable. You can usually do this by adding the following line to your shell's configuration file (e.g., `.bashrc`, `.zshrc`):
@@ -135,7 +135,12 @@ go build -o bin/go-typer
 <details>
 <summary><b>🔨 Make (Unix/Linux)</b></summary>
 
-Coming soon
+```bash
+git clone https://github.com/prime-run/go-typer.git
+cd go-typer
+make
+./bin/go-typer
+```
 
 </details>
 
@@ -143,7 +148,6 @@ Coming soon
 <summary><b>🐳 Docker (Container)</b></summary>
 
 ```bash
-# Pull from Docker Hub
 git clone https://github.com/prime-run/go-typer.git
 cd go-typer
 docker build -t go-typer .
