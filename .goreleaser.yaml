@@ -12,11 +12,11 @@ builds:
       - darwin
       - windows
     goarch:
-      - amd64
+      - amd64 # Renamed to x86_64 in outputs
       - arm64
       - "386"
     main: ./main.go
-    binary: "go-typer-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    binary: "go-typer-{{ .Version }}-{{ replace .Os `darwin` `macOS` }}-{{ if eq .Os `darwin` }}{{ if eq .Arch `arm64` }}apple-silicon{{ else }}intel{{ end }}{{ else }}{{ replace (replace .Arch `amd64` `x86_64`) `386` `i386` }}{{ end }}"
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
     ignore:
@@ -25,7 +25,7 @@ builds:
 
 archives:
   - format: tar.gz
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ replace .Os `darwin` `macOS` }}_{{ if eq .Os `darwin` }}{{ if eq .Arch `arm64` }}apple-silicon{{ else }}intel{{ end }}{{ else }}{{ replace (replace .Arch `amd64` `x86_64`) `386` `i386` }}{{ end }}"
     format_overrides:
       - goos: windows
         format: zip

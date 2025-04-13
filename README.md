@@ -1,4 +1,3 @@
-
 # 🚀 Go Typer
 
 **The sleek, fast terminal typing game inspired by [MonkeyType](https://monkeytype.com/)!**
@@ -6,11 +5,9 @@
 Go Typer brings the popular web-based typing experience of MonkeyType to your terminal with a beautiful, customizable interface. Master your typing skills right in your terminal (where it actually matters 😉) without a browser.
 (online multiplayer type racer, coming soon)
 
-
 ## 🛠️ Built With
 
 [![Go](https://img.shields.io/badge/Go-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev/) [![Cobra](https://img.shields.io/badge/Cobra-00ADD8?style=flat-square&logo=go&logoColor=white)](https://github.com/spf13/cobra) [![Bubble Tea](https://img.shields.io/badge/Bubble%20Tea-FF75B7?style=flat-square&logo=go&logoColor=white)](https://github.com/charmbracelet/bubbletea) [![Lip Gloss](https://img.shields.io/badge/Lip%20Gloss-FFABE7?style=flat-square&logo=go&logoColor=white)](https://github.com/charmbracelet/lipgloss)
-
 
 <h2><sub> 📷 </sub> Screenshots</h2>
 <table align="center">
@@ -48,7 +45,7 @@ Verify your terminal supports TrueColor by running:
 
 ```bash
 printf "\x1b[38;2;255;0;0mTRUECOLOR\x1b[0m\n"
-````
+```
 
 If you see "TRUECOLOR" in red, you're good to go\! If not, check out [this compatibility guide](https://gist.github.com/weimeng23/60b51b30eb758bd7a2a648436da1e562).
 
@@ -67,29 +64,29 @@ Choose the installation method that suits you best:
 
 Download the latest pre-built binaries for your operating system from the [Releases](https://github.com/prime-run/go-typer/releases) page. Here's a simplified way to download and install (rootless):
 
-**Linux (x86\_64):**
+**Linux (x86_64):**
 
-    ```bash
+```bash
     wget https://github.com/prime-run/go-typer/releases/download/v1.0.1/go-typer_1.0.1_linux_amd64.tar.gz
     mkdir -p ~/.local/bin
     tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
-    ```
+```
 
-**macOS (Intel x86\_64):**
+**macOS (Intel x86_64):**
 
-    ```bash
+```bash
     wget https://github.com/prime-run/go-typer/releases/download/v1.0.1/go-typer_1.0.1_darwin_amd64.tar.gz
     mkdir -p ~/.local/bin
     tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
-    ```
+```
 
 **macOS (Apple Silicon arm64):**
 
-    ```bash
+```bash
     wget https://github.com/prime-run/go-typer/releases/download/v1.0.1/go-typer_1.0.1_darwin_arm64.tar.gz
     mkdir -p ~/.local/bin
     tar -xzf go-typer_*.tar.gz -C ~/.local/bin go-typer
-    ```
+```
 
 After downloading and extracting, ensure that `~/.local/bin` is in your system's `PATH` environment variable. You can usually do this by adding the following line to your shell's configuration file (e.g., `.bashrc`, `.zshrc`):
 
@@ -113,8 +110,7 @@ Now you should be able to run Go Typer by simply typing `go-typer` in your termi
 <summary><b>⚙️ Go Install (For Go Users)</b></summary>
 
 > [!NOTE]  
-> [go](https://go.dev/doc/install) version > v1.24 is required 
-
+> [go](https://go.dev/doc/install) version > v1.24 is required
 
 ```bash
 go install github.com/prime-run/go-typer@latest
@@ -159,8 +155,6 @@ docker run -it --rm go-typer
 
 </details>
 
-
-
 ## 🎮 How to Play
 
 1.  Launch Go Typer:
@@ -183,33 +177,31 @@ docker run -it --rm go-typer
 
 ### 🎯 Keyboard Controls
 
-  - **↑/↓ or j/k**: Navigate through menu items
-  - **Enter**: Select menu item
-  - **Esc**: Go back to the previous screen
-  - **Space**: Advance to the next word while typing
-  - **Tab**: Restart the current typing exercise
-  - **q or Ctrl+C**: Quit the application
+- **↑/↓ or j/k**: Navigate through menu items
+- **Enter**: Select menu item
+- **Esc**: Go back to the previous screen
+- **Space**: Advance to the next word while typing
+- **Tab**: Restart the current typing exercise
+- **q or Ctrl+C**: Quit the application
 
 ## ⚙️ Configuration
 
 Go Typer automatically saves your preferences in your user config directory:
 
-
-  - Linux/BSD: `~/.config/go-typer/settings.json`
-  - macOS: `~/Library/Application Support/go-typer/settings.json`
-  - Windows: `%AppData%\go-typer\settings.json`
+- Linux/BSD: `~/.config/go-typer/settings.json`
+- macOS: `~/Library/Application Support/go-typer/settings.json`
+- Windows: `%AppData%\go-typer\settings.json`
 
 ![image](https://github.com/user-attachments/assets/fec6e04c-57d7-4d63-ae24-fc9dff73d923)
 
-
 You can directly edit the `settings.json` file to customize the following options:
 
-  - **theme**: Pick from eye-catching color schemes (`default`, `dark`, `monochrome`) or create your own.
-  - **cursor\_style**: Choose between `block` or `underline`.
-  - **game\_mode**: Select `normal` (with punctuation) or `simple` for beginners.
-  - **include\_numbers**: Set to `true` to include numbers in typing tests.
-  - **text\_length**: Choose from `short`, `medium`, `long`, or `very_long`.
-  - **refresh\_rate**: Fine-tune animation smoothness from `5` (battery-saving) to `60` (ultra-smooth) FPS.
+- **theme**: Pick from eye-catching color schemes (`default`, `dark`, `monochrome`) or create your own.
+- **cursor_style**: Choose between `block` or `underline`.
+- **game_mode**: Select `normal` (with punctuation) or `simple` for beginners.
+- **include_numbers**: Set to `true` to include numbers in typing tests.
+- **text_length**: Choose from `short`, `medium`, `long`, or `very_long`.
+- **refresh_rate**: Fine-tune animation smoothness from `5` (battery-saving) to `60` (ultra-smooth) FPS.
 
 ## 🎨 Themes
 
@@ -217,9 +209,9 @@ Go Typer includes beautiful themes inspired by popular coding and typing interfa
 
 Built-in themes:
 
-  - `default`: Clean light theme with green/blue highlights
-  - `dark`: Sleek dark theme with purple/blue accents
-  - `monochrome`: Minimalist black and white theme for distraction-free typing
+- `default`: Clean light theme with green/blue highlights
+- `dark`: Sleek dark theme with purple/blue accents
+- `monochrome`: Minimalist black and white theme for distraction-free typing
 
 ### 🖌️ Create Your Own Theme
 
@@ -256,9 +248,9 @@ padding: "#888888" # Padding elements color
 
 Love Go Typer? Contributions are always welcome\!
 
-  - Check out our [todos](https://www.google.com/search?q=todos.md) for upcoming features and areas where you can help.
-  - Feel free to submit pull requests for bug fixes or new features.
-  - If you have any suggestions or find any issues, please open an issue on GitHub.
+- Check out our [todos](https://www.google.com/search?q=todos.md) for upcoming features and areas where you can help.
+- Feel free to submit pull requests for bug fixes or new features.
+- If you have any suggestions or find any issues, please open an issue on GitHub.
 
 ## 📜 License
 
