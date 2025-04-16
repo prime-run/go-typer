@@ -87,7 +87,11 @@ func (t *Text) Type(r rune) {
 			currentWord.Skip()
 		}
 
-		if t.cursorPos < len(t.words)-1 {
+		if t.cursorPos < len(t.words)-2 {
+			currentWord.SetActive(false)
+			t.cursorPos += 2
+			t.words[t.cursorPos].SetActive(true)
+		} else if t.cursorPos < len(t.words)-1 {
 			currentWord.SetActive(false)
 			t.cursorPos++
 			t.words[t.cursorPos].SetActive(true)
