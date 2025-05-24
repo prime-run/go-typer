@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	devlog "github.com/prime-run/go-typer/log"
 )
 
 type WordState int
@@ -138,7 +140,7 @@ func (w *Word) updateState() {
 
 func (w *Word) IsComplete() bool {
 	complete := len(w.typed) >= len(w.target)
-	DebugLog("Word: IsComplete - Target: '%s' (%d), Typed: '%s' (%d), Complete: %v",
+	devlog.Log("Word: IsComplete - Target: '%s' (%d), Typed: '%s' (%d), Complete: %v",
 		string(w.target), len(w.target), string(w.typed), len(w.typed), complete)
 	return complete
 }
@@ -246,7 +248,7 @@ func (w *Word) Render(showCursor bool) string {
 
 	if w.active {
 		renderTime := time.Since(startTime)
-		DebugLog("Word: Active word render completed in %s, length: %d", renderTime, len(rendered))
+		devlog.Log("Word: Active word render completed in %s, length: %d", renderTime, len(rendered))
 	}
 
 	return rendered

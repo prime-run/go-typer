@@ -2,9 +2,14 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	devlog "github.com/prime-run/go-typer/log"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
@@ -60,7 +65,7 @@ func (m *LoadingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case textFetchedMsg:
 		m.text = string(msg)
-		DebugLog("Loading: Fetched text: %s", m.text)
+		devlog.Log("Loading: Fetched text: %s", m.text)
 		return StartTypingGame(m.width, m.height, m.text), nil
 
 	case tea.WindowSizeMsg:

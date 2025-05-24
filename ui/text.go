@@ -3,6 +3,8 @@ package ui
 import (
 	"strings"
 	"time"
+
+	devlog "github.com/prime-run/go-typer/log"
 )
 
 type Text struct {
@@ -145,7 +147,7 @@ func (t *Text) Backspace() {
 
 func (t *Text) Render() string {
 	startTime := time.Now()
-	DebugLog("Text: Render started")
+	devlog.Log("Text: Render started")
 
 	estimatedSize := 0
 	for _, word := range t.words {
@@ -167,7 +169,7 @@ func (t *Text) Render() string {
 	rendered := TextContainerStyle.Render(result.String())
 
 	renderTime := time.Since(startTime)
-	DebugLog("Text: Render completed in %s, length: %d", renderTime, len(rendered))
+	devlog.Log("Text: Render completed in %s, length: %d", renderTime, len(rendered))
 
 	return rendered
 }

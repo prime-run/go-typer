@@ -2,10 +2,12 @@ package ui
 
 import (
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	devlog "github.com/prime-run/go-typer/log"
 )
 
 const logoArt = `
@@ -636,7 +638,7 @@ func saveAndGoBack(m *StartScreenModel) tea.Cmd {
 	}
 
 	if err := UpdateSettings(settings); err != nil {
-		DebugLog("Settings: Error updating settings: %v", err)
+		devlog.Log("Settings: Error updating settings: %v", err)
 	}
 
 	m.menuState = MenuMain

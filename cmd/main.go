@@ -2,6 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+
+	devlog "github.com/prime-run/go-typer/log"
 	"github.com/prime-run/go-typer/ui"
 	"github.com/spf13/cobra"
 	"os"
@@ -20,9 +24,9 @@ var startCmd = &cobra.Command{
 	Long:  `Start a new game of Go Typer. This command will initialize a new game session.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if debugMode {
-			ui.DebugEnabled = true
-			ui.InitDebugLog()
-			defer ui.CloseDebugLog()
+			devlog.DebugEnabled = true
+			devlog.InitLog()
+			defer devlog.CloseLog()
 
 			cmd.Printf("Debug mode enabled, logging to %s\n", filepath.Join(getConfigDirPath(), "debug.log"))
 		}
