@@ -6,9 +6,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	devlog "github.com/prime-run/go-typer/log"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"time"
 )
 
 type TypingModel struct {

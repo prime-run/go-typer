@@ -11,9 +11,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	devlog "github.com/prime-run/go-typer/log"
 	"github.com/spf13/cobra"
-	"os"
-	"strings"
-	"time"
 )
 
 type textFetchedMsg string

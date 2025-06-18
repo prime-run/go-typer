@@ -2,78 +2,90 @@ package ui
 
 import (
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/prime-run/go-typer/utils"
+	"gopkg.in/yaml.v3"
 )
 
 const (
-	ThemeDefault    = "default"
-	ThemeDark       = "dark"
-	ThemeMonochrome = "monochrome"
+	ThemeDefault    = "default"    // Default theme name
+	ThemeDark       = "dark"       // Dark theme name
+	ThemeMonochrome = "monochrome" // Monochrome theme name
+
+	YMLSuffix = ".yml" // YAML file suffix
 )
 
 type ThemeColors struct {
-	HelpText string `yaml:"help_text"`
-	Timer    string `yaml:"timer"`
-	Border   string `yaml:"border"`
+	HelpText string `yaml:"help_text"` // Help text color
+	Timer    string `yaml:"timer"`     // Timer color
+	Border   string `yaml:"border"`    // Border color
 
-	TextDim          string `yaml:"text_dim"`
-	TextPreview      string `yaml:"text_preview"`
-	TextCorrect      string `yaml:"text_correct"`
-	TextError        string `yaml:"text_error"`
-	TextPartialError string `yaml:"text_partial_error"`
+	TextDim          string `yaml:"text_dim"`           // Dimmed text color
+	TextPreview      string `yaml:"text_preview"`       // Preview text color
+	TextCorrect      string `yaml:"text_correct"`       // Correct text color
+	TextError        string `yaml:"text_error"`         // Error text color
+	TextPartialError string `yaml:"text_partial_error"` // Partial error text color
 
-	CursorFg        string `yaml:"cursor_fg"`
-	CursorBg        string `yaml:"cursor_bg"`
-	CursorUnderline string `yaml:"cursor_underline"`
+	CursorFg        string `yaml:"cursor_fg"`        // Cursor foreground color
+	CursorBg        string `yaml:"cursor_bg"`        // Cursor background color
+	CursorUnderline string `yaml:"cursor_underline"` // Cursor underline color
 
-	Padding string `yaml:"padding"`
+	Padding string `yaml:"padding"` // Padding color
 }
 
-var DefaultTheme = ThemeColors{
+var (
+	CurrentTheme ThemeColors
 
-	HelpText: "#626262",
-	Timer:    "#FFDB58",
-	Border:   "#7F9ABE",
+	themeColorMap = map[string]*string{
+		"help_text":          &CurrentTheme.HelpText,
+		"timer":              &CurrentTheme.Timer,
+		"border":             &CurrentTheme.Border,
+		"text_dim":           &CurrentTheme.TextDim,
+		"text_preview":       &CurrentTheme.TextPreview,
+		"text_correct":       &CurrentTheme.TextCorrect,
+		"text_error":         &CurrentTheme.TextError,
+		"text_partial_error": &CurrentTheme.TextPartialError,
+		"cursor_fg":          &CurrentTheme.CursorFg,
+		"cursor_bg":          &CurrentTheme.CursorBg,
+		"cursor_underline":   &CurrentTheme.CursorUnderline,
+		"padding":            &CurrentTheme.Padding,
+	}
 
-	TextDim:          "#555555",
-	TextPreview:      "#7F9ABE",
-	TextCorrect:      "#00FF00",
-	TextError:        "#FF0000",
-	TextPartialError: "#FF8C00",
+	// Default theme colors
+	DefaultTheme = ThemeColors{
+		HelpText: "#626262",
+		Timer:    "#FFDB58",
+		Border:   "#7F9ABE",
 
-	CursorFg:        "#FFFFFF",
-	CursorBg:        "#00AAFF",
-	CursorUnderline: "#00AAFF",
+		TextDim:          "#555555",
+		TextPreview:      "#7F9ABE",
+		TextCorrect:      "#00FF00",
+		TextError:        "#FF0000",
+		TextPartialError: "#FF8C00",
 
-	Padding: "#888888",
+		CursorFg:        "#FFFFFF",
+		CursorBg:        "#00AAFF",
+		CursorUnderline: "#00AAFF",
+
+		Padding: "#888888",
+	}
+)
+
+// InitTheme initializes the theme by loading the default theme file.
+func InitTheme() {
+	ensureDefaultThemesExist()
+
+	if err := LoadTheme(ThemeDefault); err != nil {
+		fmt.Printf("Warning: Could not load theme file: %v\n", err)
+		fmt.Println("Using default theme")
+	}
 }
 
-var CurrentTheme ThemeColors
-
-func GetThemePath(themeName string) string {
-	themeName = strings.TrimPrefix(themeName, "-")
-
-	if strings.HasSuffix(themeName, ".yml") {
-		return themeName
-	}
-
-	configDir, err := GetConfigDir()
-	if err != nil {
-		return filepath.Join("colorschemes", themeName+".yml")
-	}
-
-	colorschemesDir := filepath.Join(configDir, "colorschemes")
-	if err := os.MkdirAll(colorschemesDir, 0755); err != nil {
-		return filepath.Join("colorschemes", themeName+".yml")
-	}
-
-	return filepath.Join(colorschemesDir, themeName+".yml")
-}
-
+// LoadTheme loads the theme from the specified file or directory.
 func LoadTheme(themeNameOrPath string) error {
 	CurrentTheme = DefaultTheme
 
@@ -81,14 +93,14 @@ func LoadTheme(themeNameOrPath string) error {
 		return fmt.Errorf("empty theme name")
 	}
 
-	themePath := GetThemePath(themeNameOrPath)
+	themePath := utils.GetThemePath(themeNameOrPath)
 
 	data, err := os.ReadFile(themePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			themeName := filepath.Base(themePath)
-			themeName = strings.TrimSuffix(themeName, ".yml")
-			if !isValidThemeName(themeName) {
+			themeName = strings.TrimSuffix(themeName, YMLSuffix)
+			if !utils.IsValidThemeName(themeName) {
 				return fmt.Errorf("invalid theme name: %s", themeName)
 			}
 
@@ -119,56 +131,14 @@ func LoadTheme(themeNameOrPath string) error {
 	return nil
 }
 
-func isValidThemeName(name string) bool {
-	if name == "" {
-		return false
-	}
-
-	for _, c := range name {
-		if !isValidThemeNameChar(c) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func isValidThemeNameChar(c rune) bool {
-	return (c >= 'a' && c <= 'z') ||
-		(c >= 'A' && c <= 'Z') ||
-		(c >= '0' && c <= '9') ||
-		c == '_' || c == '-'
-}
-
+// GetColor returns the color associated with the given color name.
+// If the color name is not found, it returns a default color (white).
 func GetColor(colorName string) lipgloss.Color {
 	var hexColor string
 
-	switch colorName {
-	case "help_text":
-		hexColor = CurrentTheme.HelpText
-	case "timer":
-		hexColor = CurrentTheme.Timer
-	case "border":
-		hexColor = CurrentTheme.Border
-	case "text_dim":
-		hexColor = CurrentTheme.TextDim
-	case "text_preview":
-		hexColor = CurrentTheme.TextPreview
-	case "text_correct":
-		hexColor = CurrentTheme.TextCorrect
-	case "text_error":
-		hexColor = CurrentTheme.TextError
-	case "text_partial_error":
-		hexColor = CurrentTheme.TextPartialError
-	case "cursor_fg":
-		hexColor = CurrentTheme.CursorFg
-	case "cursor_bg":
-		hexColor = CurrentTheme.CursorBg
-	case "cursor_underline":
-		hexColor = CurrentTheme.CursorUnderline
-	case "padding":
-		hexColor = CurrentTheme.Padding
-	default:
+	if color, ok := themeColorMap[colorName]; ok {
+		hexColor = *color
+	} else {
 		hexColor = "#FFFFFF"
 	}
 
@@ -178,14 +148,14 @@ func GetColor(colorName string) lipgloss.Color {
 func ListAvailableThemes() []string {
 	themes := []string{ThemeDefault, ThemeDark, ThemeMonochrome}
 
-	configDir, err := GetConfigDir()
+	configDir, err := utils.GetAppConfigDir()
 	if err == nil {
 		colorschemesDir := filepath.Join(configDir, "colorschemes")
 		files, err := os.ReadDir(colorschemesDir)
 		if err == nil {
 			for _, file := range files {
-				if !file.IsDir() && strings.HasSuffix(file.Name(), ".yml") {
-					themeName := strings.TrimSuffix(file.Name(), ".yml")
+				if !file.IsDir() && strings.HasSuffix(file.Name(), YMLSuffix) {
+					themeName := strings.TrimSuffix(file.Name(), YMLSuffix)
 					if themeName != ThemeDefault && themeName != ThemeDark && themeName != ThemeMonochrome {
 						themes = append(themes, themeName)
 					}
@@ -197,8 +167,8 @@ func ListAvailableThemes() []string {
 	files, err := os.ReadDir("colorschemes")
 	if err == nil {
 		for _, file := range files {
-			if !file.IsDir() && strings.HasSuffix(file.Name(), ".yml") {
-				themeName := strings.TrimSuffix(file.Name(), ".yml")
+			if !file.IsDir() && strings.HasSuffix(file.Name(), YMLSuffix) {
+				themeName := strings.TrimSuffix(file.Name(), YMLSuffix)
 				if themeName != ThemeDefault && themeName != ThemeDark && themeName != ThemeMonochrome {
 					themes = append(themes, themeName)
 				}
@@ -207,16 +177,6 @@ func ListAvailableThemes() []string {
 	}
 
 	return themes
-}
-
-func InitTheme() {
-	ensureDefaultThemesExist()
-
-	themeFile := GetThemePath(ThemeDefault)
-	if err := LoadTheme(themeFile); err != nil {
-		fmt.Printf("Warning: Could not load theme file: %v\n", err)
-		fmt.Println("Using default theme")
-	}
 }
 
 func ensureDefaultThemesExist() {
@@ -258,7 +218,7 @@ func ensureDefaultThemesExist() {
 		},
 	}
 
-	configDir, err := GetConfigDir()
+	configDir, err := utils.GetAppConfigDir()
 	if err != nil {
 		fmt.Printf("Warning: Could not get config directory: %v\n", err)
 		return
@@ -271,7 +231,7 @@ func ensureDefaultThemesExist() {
 	}
 
 	for themeName, colors := range defaultThemes {
-		themePath := filepath.Join(colorschemesDir, themeName+".yml")
+		themePath := filepath.Join(colorschemesDir, themeName+YMLSuffix)
 
 		if _, err := os.Stat(themePath); err == nil {
 			continue

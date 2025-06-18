@@ -261,7 +261,7 @@ func GetRandomText() string {
 	var err error
 	var text string
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		switch i {
 		case 0:
 			source = NewZenQuotesSource()

@@ -2,20 +2,22 @@ package ui
 
 import (
 	"fmt"
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"time"
 )
 
 type WelcomeModel struct {
-	width     int
-	height    int
-	step      int
-	done      bool
-	startTime time.Time
-	lastTick  time.Time
+	width     int       // Width of the terminal
+	height    int       // Height of the terminal
+	step      int       // Current step in the welcome process
+	done      bool      // Whether the welcome screen is done
+	startTime time.Time // Start time of the welcome screen
+	lastTick  time.Time // Last tick time for animations
 }
 
+// NewWelcomeModel creates a new instance of WelcomeModel
 func NewWelcomeModel() *WelcomeModel {
 	return &WelcomeModel{
 		step:      0,
@@ -97,12 +99,12 @@ func (m *WelcomeModel) View() string {
 		content)
 }
 
-func ShowWelcomeScreen() bool {
+func ShowWelcomeScreen() {
 	InitSettings()
 
 	// TODO:REMOVE BELOW COMMENT IN PROD
 	if CurrentSettings.HasSeenWelcome {
-		return false
+		return
 	}
 
 	model := NewWelcomeModel()
@@ -110,6 +112,4 @@ func ShowWelcomeScreen() bool {
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error running welcome screen: %v\n", err)
 	}
-
-	return true
 }

@@ -7,6 +7,29 @@ import (
 	"unicode"
 )
 
+// GetThemePath returns the path to the theme file based on the user's configuration directory.
+// If the theme name starts with a hyphen, it is trimmed.
+func GetThemePath(themeName string) string {
+	const YMLSuffix = ".yml" // YAML file suffix
+
+	themeName = strings.TrimPrefix(themeName, "-")
+	if strings.HasSuffix(themeName, YMLSuffix) {
+		return themeName
+	}
+
+	configDir, err := GetAppConfigDir()
+	if err != nil {
+		return filepath.Join("colorschemes", themeName+YMLSuffix)
+	}
+
+	colorschemesDir := filepath.Join(configDir, "colorschemes")
+	if err := os.MkdirAll(colorschemesDir, 0755); err != nil {
+		return filepath.Join("colorschemes", themeName+YMLSuffix)
+	}
+
+	return filepath.Join(colorschemesDir, themeName+YMLSuffix)
+}
+
 // GetDisplayThemeName returns a user-friendly name for the theme.
 func GetDisplayThemeName(themeName string) string {
 	if strings.Contains(themeName, "/") || strings.Contains(themeName, "\\") {

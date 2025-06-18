@@ -204,9 +204,10 @@ func (t *Text) Stats() (total, correct, errors int) {
 			continue
 		}
 
-		if word.state == Perfect {
+		switch word.state {
+		case Perfect:
 			correct++
-		} else if word.state == Error {
+		case Error:
 			errors++
 		}
 		total++
