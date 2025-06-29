@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -16,6 +17,8 @@ var (
 	themeName  string // Theme name or path to custom theme file
 	listThemes bool   // List available themes and exit
 	debugMode  bool   // Enable debug mode for performance analysis
+	customText string // Custom text to display in the game
+	filePath   string // Custom text file to read from
 )
 
 var startCmd = &cobra.Command{
@@ -62,6 +65,16 @@ var startCmd = &cobra.Command{
 			}
 		}
 
+		// check for custom text and set it
+		if filePath != "" {
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				cmd.Printf("Warning: Could not read custom text file '%s': %v\n", filePath, err)
+			} else {
+				customText = string(data)
+			}
+		}
+
 		// check for cursor type and set it
 		if cursorType != "" {
 			ui.CurrentSettings.CursorType = cursorType
@@ -69,7 +82,7 @@ var startCmd = &cobra.Command{
 
 		// apply settings and start loading
 		ui.ApplySettings()
-		ui.StartLoadingWithOptions(ui.CurrentSettings.CursorType)
+		ui.StartLoadingWithOptions(ui.CurrentSettings.CursorType, customText)
 	},
 }
 
@@ -82,6 +95,10 @@ func init() {
 	// Debug and logging options
 	startCmd.Flags().BoolP("verbose", "v", false, "Enable verbose output")
 	startCmd.Flags().BoolVar(&debugMode, "debug", false, "Enable debug mode for performance analysis")
+
+	// Custom text option
+	startCmd.Flags().StringVarP(&customText, "text", "x", "", "Custom text to display in the game (default: random text)")
+	startCmd.Flags().StringVarP(&filePath, "file", "f", "", "Custom text file to read from")
 
 	// Add command to root
 	rootCmd.AddCommand(startCmd)

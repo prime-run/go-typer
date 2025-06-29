@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	devlog "github.com/prime-run/go-typer/log"
+	"github.com/prime-run/go-typer/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +26,7 @@ type LoadingModel struct {
 	progressBar progress.Model
 }
 
-func NewLoadingModel() *LoadingModel {
+func NewLoadingModel(customText string) *LoadingModel {
 	p := progress.New(
 		progress.WithDefaultGradient(),
 		progress.WithWidth(60),
@@ -37,13 +38,14 @@ func NewLoadingModel() *LoadingModel {
 		progress:    0.0,
 		lastTick:    time.Now(),
 		progressBar: p,
+		text:        customText,
 	}
 }
 
 func (m *LoadingModel) Init() tea.Cmd {
 	return tea.Batch(
 		InitGlobalTick(),
-		fetchTextCmd(),
+		fetchTextCmd(m.text),
 	)
 }
 
@@ -96,7 +98,19 @@ func (m *LoadingModel) View() string {
 		content)
 }
 
-func fetchTextCmd() tea.Cmd {
+// fetchTextCmd fetches random text based on the current settings or uses a custom text if provided.
+func fetchTextCmd(customText string) tea.Cmd {
+	// If a custom text is provided, use it directly
+	if customText != "" {
+		return func() tea.Msg {
+			if len(customText) > 300 {
+				customText = utils.FormatText(customText[:300]) // Limit to 300 characters
+			}
+			return textFetchedMsg(customText)
+		}
+	}
+
+	// Otherwise, fetch random text based on the current settings
 	return func() tea.Msg {
 		textCount := map[string]int{
 			TextLengthShort:    1,
@@ -111,7 +125,7 @@ func fetchTextCmd() tea.Cmd {
 
 		estimatedTotalLen := count * 200
 
-		for i := 0; i < count; i++ {
+		for range count {
 			text := GetRandomText()
 			texts = append(texts, text)
 		}
@@ -131,10 +145,10 @@ func fetchTextCmd() tea.Cmd {
 }
 
 func StartLoading(cmd *cobra.Command, args []string) {
-	StartLoadingWithOptions("block")
+	StartLoadingWithOptions("block", "")
 }
 
-func StartLoadingWithOptions(cursorTypeStr string) {
+func StartLoadingWithOptions(cursorTypeStr string, customText string) {
 	selectedCursorType := BlockCursor
 	if cursorTypeStr == "underline" {
 		selectedCursorType = UnderlineCursor
@@ -142,7 +156,7 @@ func StartLoadingWithOptions(cursorTypeStr string) {
 
 	DefaultCursorType = selectedCursorType
 
-	model := NewLoadingModel()
+	model := NewLoadingModel(customText)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Println("Oh no!", err)

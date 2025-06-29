@@ -71,7 +71,7 @@ func (m *EndGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case 0:
 				return NewTypingModel(m.width, m.height, m.text), InitGlobalTick()
 			case 1:
-				StartLoadingWithOptions(CurrentSettings.CursorType)
+				StartLoadingWithOptions(CurrentSettings.CursorType, m.text)
 				return m, tea.Quit
 			}
 

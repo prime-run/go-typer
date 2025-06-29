@@ -773,7 +773,7 @@ func RunStartScreen() {
 			item := m.mainMenuItems[m.selectedItem]
 
 			if item.title == "Start Typing" {
-				StartLoadingWithOptions(m.cursorType)
+				StartLoadingWithOptions(m.cursorType, "")
 			}
 		}
 	}

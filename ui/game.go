@@ -219,5 +219,5 @@ func RunTypingGame() {
 		CurrentSettings.ThemeName, CurrentSettings.CursorType,
 		CurrentSettings.GameMode, CurrentSettings.UseNumbers)
 
-	StartLoadingWithOptions(CurrentSettings.CursorType)
+	StartLoadingWithOptions(CurrentSettings.CursorType, "")
 }
