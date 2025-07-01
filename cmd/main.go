@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	cursorType string // Cursor type (block or underline)
-	themeName  string // Theme name or path to custom theme file
-	listThemes bool   // List available themes and exit
-	debugMode  bool   // Enable debug mode for performance analysis
-	customText string // Custom text to display in the game
-	filePath   string // Custom text file to read from
+	cursorType string
+	themeName  string
+	listThemes bool
+	debugMode  bool
+	customText string
+	filePath   string
 )
 
 var startCmd = &cobra.Command{
@@ -26,7 +26,6 @@ var startCmd = &cobra.Command{
 	Short: "Start a new game",
 	Long:  "Start a new game of Go Typer. This command will initialize a new game session.",
 	Run: func(cmd *cobra.Command, args []string) {
-		// check if the debug mode is enabled and set the log level accordingly
 		if debugMode {
 			devlog.DebugEnabled = true
 			devlog.InitLog()
@@ -35,7 +34,6 @@ var startCmd = &cobra.Command{
 			cmd.Printf("Debug mode enabled, logging to %s\n", filepath.Join(utils.GetConfigDirPath(), "debug.log"))
 		}
 
-		// check if listThemes is enabled and list available themes
 		if listThemes {
 			themes := ui.ListAvailableThemes()
 			fmt.Println("Available themes:")
@@ -45,7 +43,6 @@ var startCmd = &cobra.Command{
 			return
 		}
 
-		// check for theme name and load the theme
 		if themeName != "" {
 			fmt.Printf("Theme name provided: %s", themeName)
 			if strings.HasPrefix(themeName, "-") {
@@ -65,41 +62,36 @@ var startCmd = &cobra.Command{
 			}
 		}
 
-		// check for custom text and set it
 		if filePath != "" {
 			data, err := os.ReadFile(filePath)
 			if err != nil {
-				cmd.Printf("Warning: Could not read custom text file '%s': %v\n", filePath, err)
+				cmd.Printf("Could not read custom text file %s: \n", filePath)
+				os.Exit(0)
+
 			} else {
 				customText = string(data)
 			}
 		}
 
-		// check for cursor type and set it
 		if cursorType != "" {
 			ui.CurrentSettings.CursorType = cursorType
 		}
 
-		// apply settings and start loading
 		ui.ApplySettings()
 		ui.StartLoadingWithOptions(ui.CurrentSettings.CursorType, customText)
 	},
 }
 
 func init() {
-	// Cursor and theme configuration
 	startCmd.Flags().StringVarP(&cursorType, "cursor", "c", "block", "Cursor type (block or underline)")
 	startCmd.Flags().StringVarP(&themeName, "theme", "t", "", "Theme name or path to custom theme file (default: default)")
 	startCmd.Flags().BoolVar(&listThemes, "list-themes", false, "List available themes and exit")
 
-	// Debug and logging options
 	startCmd.Flags().BoolP("verbose", "v", false, "Enable verbose output")
 	startCmd.Flags().BoolVar(&debugMode, "debug", false, "Enable debug mode for performance analysis")
 
-	// Custom text option
 	startCmd.Flags().StringVarP(&customText, "text", "x", "", "Custom text to display in the game (default: random text)")
 	startCmd.Flags().StringVarP(&filePath, "file", "f", "", "Custom text file to read from")
 
-	// Add command to root
 	rootCmd.AddCommand(startCmd)
 }

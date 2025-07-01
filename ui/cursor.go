@@ -1,26 +1,24 @@
 package ui
 
-type CursorType int // CursorType represents the type of cursor to be used in the UI.
+type CursorType int
 
 const (
-	BlockCursor     CursorType = iota // Block cursor
-	UnderlineCursor                   // Underline cursor
+	BlockCursor CursorType = iota
+	UnderlineCursor
 )
 
-var DefaultCursorType CursorType = BlockCursor // Default cursor type
+var DefaultCursorType CursorType = BlockCursor
 
 type Cursor struct {
 	style CursorType
 }
 
-// NewCursor creates a new cursor with the specified style.
 func NewCursor(style CursorType) *Cursor {
 	return &Cursor{
 		style: style,
 	}
 }
 
-// render returns the string representation of the cursor based on its style.
 func (c *Cursor) Render(char rune) string {
 	switch c.style {
 	case BlockCursor:

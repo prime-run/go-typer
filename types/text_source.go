@@ -7,15 +7,13 @@ import (
 	"time"
 )
 
-type Mode string // Mode is a type that represents the different modes of text formatting.
-// TextSource is a struct that represents a source of text.
-// It contains a URL to fetch the text from and a parser function to process the response.
+type Mode string
+
 type TextSource struct {
-	URL    string                       // URL to fetch text from
-	Parser func([]byte) (string, error) // Parser function to process the response
+	URL    string
+	Parser func([]byte) (string, error)
 }
 
-// FetchText fetches text from the specified URL and parses it using the provided parser function.
 func (s *TextSource) FetchText() (string, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,

@@ -11,14 +11,11 @@ import (
 )
 
 var (
-	DebugEnabled = false   // Enable debug logging
-	debugFile    *os.File  // File handle for the debug log
-	lastFlush    time.Time // Last time the log was flushed
+	DebugEnabled = false
+	debugFile    *os.File
+	lastFlush    time.Time
 )
 
-// InitDebugLog initializes the debug log file. It creates a new file in the
-// application's config directory and writes initial debug information.
-// It also logs the current OS, architecture, number of CPUs, and goroutines.
 func InitLog() {
 	if !DebugEnabled {
 		return
@@ -44,8 +41,6 @@ func InitLog() {
 		runtime.GOOS, runtime.GOARCH, runtime.NumCPU(), runtime.NumGoroutine())
 }
 
-// DebugLog writes a debug message to the debug log file. It includes a timestamp and the number of goroutines.
-// The message is formatted using fmt.Sprintf, and the log is flushed every second.
 func Log(format string, args ...interface{}) {
 	if !DebugEnabled || debugFile == nil {
 		return
@@ -65,7 +60,6 @@ func Log(format string, args ...interface{}) {
 	}
 }
 
-// CloseDebugLog closes the debug log file if it is open.
 func CloseLog() {
 	if debugFile != nil {
 		Log("Closing debug log")

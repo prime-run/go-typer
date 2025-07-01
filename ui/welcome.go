@@ -9,15 +9,14 @@ import (
 )
 
 type WelcomeModel struct {
-	width     int       // Width of the terminal
-	height    int       // Height of the terminal
-	step      int       // Current step in the welcome process
-	done      bool      // Whether the welcome screen is done
-	startTime time.Time // Start time of the welcome screen
-	lastTick  time.Time // Last tick time for animations
+	width     int
+	height    int
+	step      int
+	done      bool
+	startTime time.Time
+	lastTick  time.Time
 }
 
-// NewWelcomeModel creates a new instance of WelcomeModel
 func NewWelcomeModel() *WelcomeModel {
 	return &WelcomeModel{
 		step:      0,

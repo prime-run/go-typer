@@ -7,10 +7,8 @@ import (
 	"unicode"
 )
 
-// GetThemePath returns the path to the theme file based on the user's configuration directory.
-// If the theme name starts with a hyphen, it is trimmed.
 func GetThemePath(themeName string) string {
-	const YMLSuffix = ".yml" // YAML file suffix
+	const YMLSuffix = ".yml"
 
 	themeName = strings.TrimPrefix(themeName, "-")
 	if strings.HasSuffix(themeName, YMLSuffix) {
@@ -30,7 +28,6 @@ func GetThemePath(themeName string) string {
 	return filepath.Join(colorschemesDir, themeName+YMLSuffix)
 }
 
-// GetDisplayThemeName returns a user-friendly name for the theme.
 func GetDisplayThemeName(themeName string) string {
 	if strings.Contains(themeName, "/") || strings.Contains(themeName, "\\") {
 		themeName = filepath.Base(themeName)
@@ -50,7 +47,6 @@ func GetDisplayThemeName(themeName string) string {
 	return strings.Join(words, " ")
 }
 
-// IsValidThemeName checks if the provided theme name is valid.
 func IsValidThemeName(name string) bool {
 	if strings.Contains(name, ".") && !strings.HasSuffix(name, ".yml") {
 		return false

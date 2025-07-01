@@ -26,10 +26,10 @@ const (
 	GameModeNormal = "normal"
 	GameModeSimple = "simple"
 
-	TextLengthShort    = "short"     // 1
-	TextLengthMedium   = "medium"    // 2
-	TextLengthLong     = "long"      // 3
-	TextLengthVeryLong = "very long" // 5
+	TextLengthShort    = "short"
+	TextLengthMedium   = "medium"
+	TextLengthLong     = "long"
+	TextLengthVeryLong = "very long"
 )
 
 var DefaultSettings = UserSettings{

@@ -98,19 +98,16 @@ func (m *LoadingModel) View() string {
 		content)
 }
 
-// fetchTextCmd fetches random text based on the current settings or uses a custom text if provided.
 func fetchTextCmd(customText string) tea.Cmd {
-	// If a custom text is provided, use it directly
 	if customText != "" {
 		return func() tea.Msg {
 			if len(customText) > 300 {
-				customText = utils.FormatText(customText[:300]) // Limit to 300 characters
+				customText = utils.FormatText(customText[:300])
 			}
 			return textFetchedMsg(customText)
 		}
 	}
 
-	// Otherwise, fetch random text based on the current settings
 	return func() tea.Msg {
 		textCount := map[string]int{
 			TextLengthShort:    1,

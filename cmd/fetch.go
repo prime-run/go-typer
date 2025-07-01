@@ -1,5 +1,4 @@
-// NOTE:QUTE FETCHER
-// .. maybe cache using a free edge run-time and store in an S3 bucket?
+// NOTE: maybe cache using a free edge run-time and store in an S3 bucket?
 package cmd
 
 import (
@@ -13,12 +12,12 @@ import (
 )
 
 const (
-	ModeDefault   types.Mode = "default"   // default mode
-	ModeWords     types.Mode = "words"     // word mode
-	ModeSentences types.Mode = "sentences" // sentence mode
+	ModeDefault   types.Mode = "default"
+	ModeWords     types.Mode = "words"
+	ModeSentences types.Mode = "sentences"
 
-	zenQuotesAPIURL = "https://zenquotes.io/api/random" // ZenQuotes API URL
-	bibleAPIURL     = "https://bible-api.com/john+3:16" // Bible API URL
+	zenQuotesAPIURL = "https://zenquotes.io/api/random"
+	bibleAPIURL     = "https://bible-api.com/john+3:16"
 )
 
 func init() {
@@ -94,7 +93,6 @@ var fetchCmd = &cobra.Command{
 	},
 }
 
-// formatForGameMode formats the text based on the specified game mode.
 func formatForGameMode(text string, mode types.Mode) string {
 	text = utils.FormatText(text)
 
@@ -108,14 +106,11 @@ func formatForGameMode(text string, mode types.Mode) string {
 	}
 }
 
-// formatForWords formats the text for word mode by splitting it into lines based on spaces.
-// Each word is placed on a new line.
 func formatForWords(text string) string {
 	words := strings.Fields(text)
 	return strings.Join(words, "\n")
 }
 
-// formatForSentences formats the text for sentence mode by splitting it into lines based on punctuation.
 func formatForSentences(text string) string {
 	text = strings.ReplaceAll(text, ".", ".\n")
 	text = strings.ReplaceAll(text, "!", "!\n")

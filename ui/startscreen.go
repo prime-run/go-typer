@@ -596,11 +596,11 @@ func renderRefreshRateExample(rate int, tickTime time.Time) string {
 func renderAnimatedAscii(logoArt string, tickTime time.Time) string {
 	var result strings.Builder
 	colors := []string{
-		"#87CEEB", // Sky blue
-		"#4682B4", // Steel blue
-		"#1E90FF", // Dodger blue
-		"#0000CD", // Medium blue
-		"#000080", // Navy blue
+		"#87CEEB", // sky blue
+		"#4682B4", // steel blue
+		"#1E90FF", // dodger blue
+		"#0000CD", // medium blue
+		"#000080", // navy blue
 	}
 
 	startIndex := int(tickTime.UnixNano()/int64(100*time.Millisecond)) % len(colors)
