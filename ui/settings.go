@@ -3,11 +3,13 @@ package ui
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"os"
-	"path/filepath"
+	"github.com/prime-run/go-typer/utils"
 )
 
 type UserSettings struct {
@@ -42,23 +44,8 @@ var DefaultSettings = UserSettings{
 
 var CurrentSettings UserSettings
 
-func GetConfigDir() (string, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get user config directory: %w", err)
-	}
-
-	appConfigDir := filepath.Join(configDir, "go-typer")
-
-	if err := os.MkdirAll(appConfigDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	return appConfigDir, nil
-}
-
 func GetSettingsFilePath() (string, error) {
-	configDir, err := GetConfigDir()
+	configDir, err := utils.GetAppConfigDir()
 	if err != nil {
 		return "", err
 	}

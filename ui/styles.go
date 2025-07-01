@@ -5,8 +5,44 @@ import (
 )
 
 const (
-	Padding  = 2
-	MaxWidth = 80
+	Padding  = 2  // Padding for the text
+	MaxWidth = 80 // Maximum width for the text
+
+	SampleTextNormal            = "The quick brown fox jumps over the lazy dog. Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++."
+	SampleTextNormalWithNumbers = "The quick brown fox jumps over the 5 lazy dogs. In 2023, "
+	SampleTextSimple            = "the quick brown fox jumps over the lazy dog programming is the process of creating a set of instructions that tell a computer how to perform a task programming can be done using a variety of computer programming languages such as javascript python and c plus plus"
+	SampleTextSimpleWithNumbers = "the quick brown fox jumps over 5 lazy dogs in 2023 programming is the process of creating a set of instructions that tell a computer how to perform a task programming can be done using a variety of computer programming languages such as javascript python and c plus plus with over 300 languages in existence"
+)
+
+var (
+	HelpStyle                  func(...string) string // Help text style
+	HintStyle                  func(...string) string // Hint text style
+	SettingsStyle              func(...string) string // Settings text style
+	TextToTypeStyle            lipgloss.Style         // Text to type style
+	InputStyle                 lipgloss.Style         // Input text style
+	ErrorStyle                 lipgloss.Style         // Error text style
+	PartialErrorStyle          lipgloss.Style         // Partial error text style
+	CenterStyle                lipgloss.Style         // Centered text style
+	PadStyle                   lipgloss.Style         // Padding text style
+	TimerStyle                 lipgloss.Style         // Timer text style
+	PreviewStyle               lipgloss.Style         // Preview text style
+	DimStyle                   lipgloss.Style         // Dim text style
+	TextContainerStyle         lipgloss.Style         // Text container style
+	BlockCursorStyle           lipgloss.Style         // Block cursor style
+	UnderlineCursorStyle       lipgloss.Style         // Underline cursor style
+	SettingsListStyle          lipgloss.Style         // Settings list style
+	SettingsDetailsStyle       lipgloss.Style         // Settings details style
+	SettingsTitleStyle         lipgloss.Style         // Settings title style
+	SettingsHelpStyle          lipgloss.Style         // Settings help text style
+	EndGameTitleStyle          lipgloss.Style         // End game title style
+	EndGameStatsBoxStyle       lipgloss.Style         // End game stats box style
+	EndGameWpmStyle            lipgloss.Style         // End game WPM style
+	EndGameAccuracyStyle       lipgloss.Style         // End game accuracy style
+	EndGameWordsStyle          lipgloss.Style         // End game words style
+	EndGameCorrectStyle        lipgloss.Style         // End game correct style
+	EndGameErrorsStyle         lipgloss.Style         // End game errors style
+	EndGameOptionStyle         lipgloss.Style         // End game option style
+	EndGameSelectedOptionStyle lipgloss.Style         // End game selected option style
 )
 
 // WARN:switched to true color might comeback to bite later in testing for other termnal emulators!
@@ -14,7 +50,6 @@ const (
 // TODO:a theming system would be nice [x]
 
 func UpdateStyles() {
-
 	helpStyle := lipgloss.NewStyle().Foreground(GetColor("help_text"))
 	HelpStyle = helpStyle.Render
 
@@ -111,51 +146,13 @@ func UpdateStyles() {
 		Bold(true)
 }
 
-var HelpStyle func(...string) string
-var HintStyle func(...string) string
-var SettingsStyle func(...string) string
-var TextToTypeStyle lipgloss.Style
-var InputStyle lipgloss.Style
-var ErrorStyle lipgloss.Style
-var PartialErrorStyle lipgloss.Style
-var CenterStyle lipgloss.Style
-var PadStyle lipgloss.Style
-var TimerStyle lipgloss.Style
-var PreviewStyle lipgloss.Style
-var DimStyle lipgloss.Style
-var TextContainerStyle lipgloss.Style
-var BlockCursorStyle lipgloss.Style
-var UnderlineCursorStyle lipgloss.Style
-var SettingsListStyle lipgloss.Style
-var SettingsDetailsStyle lipgloss.Style
-var SettingsTitleStyle lipgloss.Style
-var SettingsHelpStyle lipgloss.Style
-var EndGameTitleStyle lipgloss.Style
-var EndGameStatsBoxStyle lipgloss.Style
-var EndGameWpmStyle lipgloss.Style
-var EndGameAccuracyStyle lipgloss.Style
-var EndGameWordsStyle lipgloss.Style
-var EndGameCorrectStyle lipgloss.Style
-var EndGameErrorsStyle lipgloss.Style
-var EndGameOptionStyle lipgloss.Style
-var EndGameSelectedOptionStyle lipgloss.Style
-
-const (
-	SampleTextNormal = "The quick brown fox jumps over the lazy dog. Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++."
-
-	SampleTextNormalWithNumbers = "The quick brown fox jumps over the 5 lazy dogs. In 2023, "
-
-	SampleTextSimple = "the quick brown fox jumps over the lazy dog programming is the process of creating a set of instructions that tell a computer how to perform a task programming can be done using a variety of computer programming languages such as javascript python and c plus plus"
-
-	SampleTextSimpleWithNumbers = "the quick brown fox jumps over 5 lazy dogs in 2023 programming is the process of creating a set of instructions that tell a computer how to perform a task programming can be done using a variety of computer programming languages such as javascript python and c plus plus with over 300 languages in existence"
-)
-
+// init initializes the styles and themes
 func init() {
-
 	InitTheme()
-
 	UpdateStyles()
 }
+
+// GetSampleText returns a sample text based on the current settings
 func GetSampleText() string {
 	if CurrentSettings.GameMode == GameModeSimple {
 		if CurrentSettings.UseNumbers {

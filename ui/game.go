@@ -2,11 +2,13 @@ package ui
 
 import (
 	"fmt"
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	devlog "github.com/prime-run/go-typer/log"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"time"
 )
 
 type TypingModel struct {
@@ -23,7 +25,7 @@ type TypingModel struct {
 }
 
 func NewTypingModel(width, height int, text string) *TypingModel {
-	DebugLog("Game: Creating new typing model with text: %s", text)
+	devlog.Log("Game: Creating new typing model with text: %s", text)
 	model := &TypingModel{
 		width:        width,
 		height:       height,
@@ -39,7 +41,7 @@ func NewTypingModel(width, height int, text string) *TypingModel {
 }
 
 func (m *TypingModel) Init() tea.Cmd {
-	DebugLog("Game: Init called")
+	devlog.Log("Game: Init called")
 	return InitGlobalTick()
 }
 
@@ -68,7 +70,7 @@ func (m *TypingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastKeyTime = time.Now()
 
 		keyStr := msg.String()
-		DebugLog("Game: Key pressed: %s", keyStr)
+		devlog.Log("Game: Key pressed: %s", keyStr)
 
 		if !m.timerRunning && keyStr != "tab" && keyStr != "esc" && keyStr != "ctrl+c" {
 			m.timerRunning = true
@@ -142,11 +144,11 @@ func (m *TypingModel) formatElapsedTime() string {
 
 func (m *TypingModel) View() string {
 	startTime := time.Now()
-	DebugLog("Game: View rendering started")
-	DebugLog("Game: Current text: %s", m.text.GetText())
+	devlog.Log("Game: View rendering started")
+	devlog.Log("Game: Current text: %s", m.text.GetText())
 
 	textContent := m.text.Render()
-	DebugLog("Game: Rendered text: %s", textContent)
+	devlog.Log("Game: Rendered text: %s", textContent)
 
 	if m.gameComplete {
 		textContent = lipgloss.NewStyle().
@@ -190,32 +192,32 @@ func (m *TypingModel) View() string {
 		content)
 
 	renderTime := time.Since(startTime)
-	DebugLog("Game: View rendering completed in %s", renderTime)
+	devlog.Log("Game: View rendering completed in %s", renderTime)
 
 	return result
 }
 
 func StartTypingGame(width, height int, text string) tea.Model {
-	DebugLog("Game: Starting typing game with dimensions: %dx%d", width, height)
+	devlog.Log("Game: Starting typing game with dimensions: %dx%d", width, height)
 
 	startTime := time.Now()
 	model := NewTypingModel(width, height, text)
 	initTime := time.Since(startTime)
 
-	DebugLog("Game: Model initialization completed in %s", initTime)
-	DebugLog("Game: Using theme: %s, cursor: %s", CurrentSettings.ThemeName, CurrentSettings.CursorType)
+	devlog.Log("Game: Model initialization completed in %s", initTime)
+	devlog.Log("Game: Using theme: %s, cursor: %s", CurrentSettings.ThemeName, CurrentSettings.CursorType)
 
 	return model
 }
 
 func RunTypingGame() {
-	DebugLog("Game: RunTypingGame started")
+	devlog.Log("Game: RunTypingGame started")
 
-	DebugLog("Game: Running in terminal mode")
+	devlog.Log("Game: Running in terminal mode")
 
-	DebugLog("Game: Running with settings - Theme: %s, Cursor: %s, Mode: %s, UseNumbers: %v",
+	devlog.Log("Game: Running with settings - Theme: %s, Cursor: %s, Mode: %s, UseNumbers: %v",
 		CurrentSettings.ThemeName, CurrentSettings.CursorType,
 		CurrentSettings.GameMode, CurrentSettings.UseNumbers)
 
-	StartLoadingWithOptions(CurrentSettings.CursorType)
+	StartLoadingWithOptions(CurrentSettings.CursorType, "")
 }

@@ -2,10 +2,12 @@ package ui
 
 import (
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	devlog "github.com/prime-run/go-typer/log"
 )
 
 const logoArt = `
@@ -23,40 +25,43 @@ const logoArt = `
 `
 
 const (
-	MenuMain int = iota
-	MenuSettings
+	MenuMain     int = iota // MenuMain represents the main menu state
+	MenuSettings            // MenuSettings represents the settings menu state
+
+	DisabledColor = "#555555" // Color for disabled menu items
 )
 
 type menuItem struct {
-	title     string
-	action    func(*StartScreenModel) tea.Cmd
-	disabled  bool
-	backColor string
+	title     string                          // title of the menu item
+	action    func(*StartScreenModel) tea.Cmd // action to be executed when the item is selected
+	disabled  bool                            // flag to indicate if the item is disabled
+	backColor string                          // background color for the item
 }
 
 type StartScreenModel struct {
-	width           int
-	height          int
-	menuState       int
-	selectedItem    int
-	mainMenuItems   []menuItem
-	settingsItems   []menuItem
-	cursorType      string
-	selectedTheme   string
-	initialTheme    string
-	availableThemes []string
-	themeChanged    bool
-	gameMode        string
-	useNumbers      bool
-	textLength      string
-	refreshRate     int
-	startTime       time.Time
-	lastTick        time.Time
+	width           int        // width of the terminal
+	height          int        // height of the terminal
+	menuState       int        // current menu state (main or settings)
+	selectedItem    int        // index of the currently selected item
+	mainMenuItems   []menuItem // list of items in the main menu
+	settingsItems   []menuItem // list of items in the settings menu
+	cursorType      string     // current cursor type
+	selectedTheme   string     // currently selected theme
+	initialTheme    string     // initial theme before any changes
+	availableThemes []string   // list of available themes
+	themeChanged    bool       // flag to indicate if the theme has changed
+	gameMode        string     // current game mode
+	useNumbers      bool       // flag to indicate if numbers are used
+	textLength      string     // current text length
+	refreshRate     int        // current refresh rate
+	startTime       time.Time  // time when the start screen was opened
+	lastTick        time.Time  // last tick time for animations
 }
 
 func NewStartScreenModel() *StartScreenModel {
-	themes := ListAvailableThemes()
+	themes := ListAvailableThemes() // Get the list of available themes
 
+	// Initialize the model with default values and the current settings
 	model := &StartScreenModel{
 		menuState:       MenuMain,
 		selectedItem:    0,
@@ -69,28 +74,27 @@ func NewStartScreenModel() *StartScreenModel {
 		useNumbers:      CurrentSettings.UseNumbers,
 		textLength:      CurrentSettings.TextLength,
 		refreshRate:     CurrentSettings.RefreshRate,
-		startTime:       time.Now(),
-		lastTick:        time.Now(),
+		mainMenuItems: []menuItem{
+			{title: "Start Typing", action: startGame},
+			{title: "Multiplayer Typeracer", action: nil, disabled: true, backColor: DisabledColor},
+			{title: "Settings", action: openSettings},
+			{title: "Statistics", action: openStats, disabled: true, backColor: DisabledColor},
+			{title: "Quit", action: quitGame},
+		},
+		settingsItems: []menuItem{
+			{title: "Theme", action: cycleTheme},
+			{title: "Cursor Style", action: cycleCursor},
+			{title: "Game Mode", action: cycleGameMode},
+			{title: "Use Numbers", action: toggleNumbers},
+			{title: "Text Length", action: cycleTextLength},
+			{title: "Refresh Rate", action: cycleRefreshRate},
+			{title: "Back", action: saveAndGoBack},
+		},
+		startTime: time.Now(),
+		lastTick:  time.Now(),
 	}
 
-	model.mainMenuItems = []menuItem{
-		{title: "Start Typing", action: startGame},
-		{title: "Multiplayer Typeracer", action: nil, disabled: true, backColor: "#555555"},
-		{title: "Settings", action: openSettings},
-		{title: "Statistics", action: openStats, disabled: true, backColor: "#555555"},
-		{title: "Quit", action: quitGame},
-	}
-
-	model.settingsItems = []menuItem{
-		{title: "Theme", action: cycleTheme},
-		{title: "Cursor Style", action: cycleCursor},
-		{title: "Game Mode", action: cycleGameMode},
-		{title: "Use Numbers", action: toggleNumbers},
-		{title: "Text Length", action: cycleTextLength},
-		{title: "Refresh Rate", action: cycleRefreshRate},
-		{title: "Back", action: saveAndGoBack},
-	}
-
+	// Verify if the first item in the main menu is disabled so we can select the next available item.
 	if model.mainMenuItems[model.selectedItem].disabled {
 		for i, item := range model.mainMenuItems {
 			if !item.disabled {
@@ -103,10 +107,14 @@ func NewStartScreenModel() *StartScreenModel {
 	return model
 }
 
+// Init initializes the model and returns a command to start the global tick.
+// It sets up the initial state of the model and prepares it for updates.
 func (m *StartScreenModel) Init() tea.Cmd {
 	return InitGlobalTick()
 }
 
+// Update handles the messages received by the model.
+// It updates the model state based on the received messages and returns the updated model and any commands to be executed.
 func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case GlobalTickMsg:
@@ -123,19 +131,22 @@ func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			previousItem := m.selectedItem
 			for {
 				m.selectedItem--
-				if m.selectedItem < 0 {
-					if m.menuState == MenuMain {
-						m.selectedItem = len(m.mainMenuItems) - 1
-					} else {
-						m.selectedItem = len(m.settingsItems) - 1
-					}
-				}
 
 				if m.menuState == MenuMain {
+					// Wrap to bottom if at top
+					if m.selectedItem < 0 {
+						m.selectedItem = len(m.mainMenuItems) - 1
+					}
+					// Break if item is enabled or we're back at starting point
 					if !m.mainMenuItems[m.selectedItem].disabled || m.selectedItem == previousItem {
 						break
 					}
 				} else {
+					// Wrap to bottom if at top
+					if m.selectedItem < 0 {
+						m.selectedItem = len(m.settingsItems) - 1
+					}
+					// Break if item is enabled or we're back at starting point
 					if !m.settingsItems[m.selectedItem].disabled || m.selectedItem == previousItem {
 						break
 					}
@@ -148,18 +159,20 @@ func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selectedItem++
 
 				if m.menuState == MenuMain {
+					// Wrap around to start if we reach the end
 					if m.selectedItem >= len(m.mainMenuItems) {
 						m.selectedItem = 0
 					}
-
+					// Stop if we find enabled item or get back to starting point
 					if !m.mainMenuItems[m.selectedItem].disabled || m.selectedItem == previousItem {
 						break
 					}
 				} else {
+					// Wrap around to start if we reach the end
 					if m.selectedItem >= len(m.settingsItems) {
 						m.selectedItem = 0
 					}
-
+					// Stop if we find enabled item or get back to starting point
 					if !m.settingsItems[m.selectedItem].disabled || m.selectedItem == previousItem {
 						break
 					}
@@ -213,11 +226,12 @@ func (m *StartScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *StartScreenModel) View() string {
 	var menuContent string
 
-	if m.menuState == MenuMain {
+	switch m.menuState {
+	case MenuMain:
 		menuContent = fmt.Sprintf("%s\n%s",
 			renderAnimatedAscii(logoArt, m.lastTick),
 			m.renderMainMenu())
-	} else if m.menuState == MenuSettings {
+	case MenuSettings:
 		menuContent = m.renderSettingsMenu()
 	}
 
@@ -278,6 +292,7 @@ func (m *StartScreenModel) renderMainMenu() string {
 	return sb.String()
 }
 
+// renderSettingsMenu renders the settings menu with the style applied to each item.
 func (m *StartScreenModel) renderSettingsMenu() string {
 	var sb strings.Builder
 
@@ -291,17 +306,18 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 
 	var exampleContent string
 
-	if m.selectedItem == 0 {
-		exampleContent = renderThemeExample(m.selectedTheme)
-	} else if m.selectedItem == 1 {
+	switch m.selectedItem {
+	case 0:
+		exampleContent = renderThemeExample()
+	case 1:
 		exampleContent = renderCursorExample(m.cursorType)
-	} else if m.selectedItem == 2 {
+	case 2:
 		exampleContent = renderGameModeExample(m.gameMode)
-	} else if m.selectedItem == 3 {
+	case 3:
 		exampleContent = renderUseNumbersExample(m.useNumbers)
-	} else if m.selectedItem == 4 {
+	case 4:
 		exampleContent = renderTextLengthExample(m.textLength)
-	} else if m.selectedItem == 5 {
+	case 5:
 		exampleContent = renderRefreshRateExample(m.refreshRate, m.lastTick)
 	}
 
@@ -323,17 +339,18 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 
 		menuText := item.title
 
-		if i == 0 {
+		switch i {
+		case 0:
 			menuText = fmt.Sprintf("%-15s: %s", item.title, m.selectedTheme)
-		} else if i == 1 {
+		case 1:
 			menuText = fmt.Sprintf("%-15s: %s", item.title, m.cursorType)
-		} else if i == 2 {
+		case 2:
 			menuText = fmt.Sprintf("%-15s: %s", item.title, m.gameMode)
-		} else if i == 3 {
+		case 3:
 			menuText = fmt.Sprintf("%-15s: %v", item.title, m.useNumbers)
-		} else if i == 4 {
+		case 4:
 			menuText = fmt.Sprintf("%-15s: %s", item.title, m.textLength)
-		} else if i == 5 {
+		case 5:
 			menuText = fmt.Sprintf("%-15s: %d FPS", item.title, m.refreshRate)
 		}
 
@@ -386,7 +403,7 @@ func (m *StartScreenModel) renderSettingsMenu() string {
 	return sb.String()
 }
 
-func renderThemeExample(theme string) string {
+func renderThemeExample() string {
 	var sb strings.Builder
 
 	colorOrder := []string{
@@ -636,7 +653,7 @@ func saveAndGoBack(m *StartScreenModel) tea.Cmd {
 	}
 
 	if err := UpdateSettings(settings); err != nil {
-		DebugLog("Settings: Error updating settings: %v", err)
+		devlog.Log("Settings: Error updating settings: %v", err)
 	}
 
 	m.menuState = MenuMain
@@ -730,11 +747,6 @@ func cycleRefreshRate(m *StartScreenModel) tea.Cmd {
 	return nil
 }
 
-type StartGameMsg struct {
-	cursorType string
-	theme      string
-}
-
 func RunStartScreen() {
 	ShowWelcomeScreen()
 
@@ -761,7 +773,7 @@ func RunStartScreen() {
 			item := m.mainMenuItems[m.selectedItem]
 
 			if item.title == "Start Typing" {
-				StartLoadingWithOptions(m.cursorType)
+				StartLoadingWithOptions(m.cursorType, "")
 			}
 		}
 	}
